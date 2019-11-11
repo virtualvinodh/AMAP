@@ -1,0 +1,48 @@
+{
+  "name": "amap2",
+  "version": "1.0.0",
+  "description": "Advanced Manuscript Analysis Portal 2.0",
+  "productName": "AMAP 2.0",
+  "cordovaId": "org.cordova.quasar.app",
+  "author": "vinodhrajan.sampath@uni-hamburg.de",
+  "private": true,
+  "scripts": {
+    "lint": "eslint --ext .js,.vue src",
+    "test": "echo \"No test specified\" && exit 0"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "fs": "0.0.1-security",
+    "jimp": "^0.2.27",
+    "jquery": "^3.3.1",
+    "jsdom": "^11.7.0",
+    "quasar-cli": "^0.17.26",
+    "scriptjs": "^2.5.8",
+    "tls": "0.0.1",
+    "vue-i18n": "^7.3.3",
+    "vue-touch": "^2.0.0-beta.4",
+    "vue2-hammer": "^1.0.6"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.2.1",
+    "eslint": "^4.18.2",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-friendly-formatter": "^3.0.0",
+    "eslint-loader": "^2.0.0",
+    "eslint-plugin-import": "^2.9.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "eslint-plugin-vue": "^4.3.0",
+    "strip-ansi": "^3.0.1"
+  },
+  "engines": {
+    "node": ">= 8.9.0",
+    "npm": ">= 5.6.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 10"
+  ]
+}
