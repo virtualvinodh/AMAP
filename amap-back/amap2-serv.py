@@ -542,7 +542,6 @@ def template_matching():
 
 @app.route('/amap/api/segment/tesseract', methods=['POST'])
 def segment_tesseract():
-    os.chdir('/mnt/c/Users/admin/Dropbox/Work/amap2')
     if 'data:image' not in request.json['url']:
         image_base64 = base64.b64encode(requests.get(request.json['url']).content)
     else:
@@ -565,4 +564,4 @@ def segment_tesseract():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)

@@ -25,7 +25,6 @@
           </div>
         </transition>
       </div>
-      <span v-if="original"> Original Image </span>
     </v-touch>
     <div class="icons" v-if="showIcons">
       <q-icon name="zoom in" size="20px" @click.native="zoomin" class="q-mr-sm"/> <br/>
@@ -37,6 +36,7 @@
       <span v-if="colBooksIcon"> <q-icon name="keyboard arrow down" size="20px" @click.native="$emit('down')" class="q-mr-sm"/> <br/></span>
       <q-icon name="gps fixed" @click.native="showOriginal" size="20px" class="q-mr-sm"/> <br/>
     </div>
+    <div v-if="original" class="fix"> <small><i>Original Image</i></small> </div>
 </div>
 </template>
 

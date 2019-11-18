@@ -1,0 +1,10 @@
+version: '3'
+services:
+  front:
+    image: virtualvinodh/amap-front
+    ports:
+      - "8080:80"
+  back:
+    image: virtualvinodh/amap-back
+    ports:
+      - "5000:5000"

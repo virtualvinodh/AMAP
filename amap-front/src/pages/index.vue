@@ -1,6 +1,7 @@
 <template>
   <!-- save and load protractors/scales -->
   <!-- delete instruments -->
+  <!-- Update screen after fribourg load -->
   <!-- saving and loading the workspace fix it properly -->
 
   <!-- Fix for collection books -->
@@ -49,7 +50,7 @@
         <q-tooltip> Toggle Lines </q-tooltip>
       </q-btn>
 
-      <q-btn flat round large @click="layer3dShow = !layer3dShow" icon="3d rotation" size="lg">
+      <!-- <q-btn flat round large @click="layer3dShow = !layer3dShow" icon="3d rotation" size="lg">
         <q-tooltip> 3D Layers </q-tooltip>
       </q-btn>
 
@@ -59,14 +60,18 @@
 
       <q-btn flat round large icon="library books" @click="showLeft = !showLeft" size="lg">
         <q-tooltip> Logs </q-tooltip>
-      </q-btn>
+      </q-btn> -->
 
       <q-btn flat round large icon="tune" @click="showScaleTilt = !showScaleTilt" size="lg">
         <q-tooltip> Show scale and tilt </q-tooltip>
       </q-btn>
 
       <q-btn flat round large icon="mouse" @click="showIcons = !showIcons" size="lg">
-        <q-tooltip> Show scale and tilt </q-tooltip>
+        <q-tooltip> Hide image icons </q-tooltip>
+      </q-btn>
+
+      <q-btn flat round large icon="help" @click="showIcons = !showIcons" size="lg">
+        <q-tooltip> Help </q-tooltip>
       </q-btn>
 
     </q-toolbar>
@@ -621,7 +626,7 @@ export default {
       showLeft: false,
       showFoote: true,
       loadingdata: false,
-      showIcons: false,
+      showIcons: true,
       imagesM: [],
       attachingElements: ['imagesM', 'imagesMCrop', 'rulers', 'protractors', 'collectionBooks'],
       attachedElements: ['settingKnobs', 'chipsAction', 'actionFlows', 'boxesText', 'identifyWriters', 'matchTemplates', 'actionCopies'],
@@ -2106,7 +2111,7 @@ export default {
       if (files.length === 1) {
         var content = await this.readFile(files[0])
         this.imagesM.push({
-          coord: [0, 80],
+          coord: [100, 200],
           delCoord: [0, 0],
           width: 400,
           tilt: 0,
