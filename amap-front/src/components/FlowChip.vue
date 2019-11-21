@@ -1,6 +1,6 @@
 <template>
   <div>
-    <q-chip tag pointing="left" :color="colorName" :icon="iconName" :style="{'width': typeof widthk === 'undefined' ? '230px' : this.widthk + 'px'}">
+    <q-chip tag pointing="left" :color="colorName" :icon="iconName" :style="{'width': typeof widthk === 'undefined' ? '170px' : this.widthk + 'px'}">
      <label v-html="text" class="ellipsis-2-lines"> </label>
     </q-chip>
   </div>

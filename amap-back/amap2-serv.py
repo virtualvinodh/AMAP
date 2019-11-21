@@ -16,6 +16,9 @@ import csv
 from query import Query
 import skimage
 import skimage.morphology
+import math
+
+import kassens
 
 from datetime import datetime
 
@@ -34,7 +37,7 @@ def hello_world():
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))  # refers to application_top
     APP_STATIC = os.path.join(APP_ROOT, 'static')
 
-    return APP_ROOT + ' ' + APP_STATIC + ' ' + 'OpenCV Version ' + cv. __version__
+    return APP_ROOT + ' ' + APP_STATIC + ' ' + 'OpenCV Version ' + cv. __version__ + 'Scikit_image version ' + skimage.__version__
 
 
 @app.route('/amap/api/demo/<int:num>', methods=['GET'])
@@ -85,6 +88,74 @@ def cv_encode_base64(img_format, img, type = "opencv"):
 def upload_image():
     return "success"
 
+def topbase_lines(img, parameters):
+    grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+    print(parameters)
+
+    return kassens.findAndDrawTopBaseLines(grey, parameters['scale'], parameters['theta'])
+
+def hough_line(img, parameters):
+    dst = img
+
+    try:
+        cdst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
+    except:
+        cdst = img
+        dst = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+
+    lines = cv.HoughLines(dst, 1, np.pi / 180, parameters['threshold'], None, 0, 0)
+
+    print('The found lines are ')
+    print(lines)
+
+    if lines is not None:
+        for i in range(0, len(lines)):
+            rho = lines[i][0][0]
+            theta = lines[i][0][1]
+            a = math.cos(theta)
+            b = math.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
+            pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
+            cv.line(cdst, pt1, pt2, (0,0,255), 1, cv.LINE_AA)
+
+    return cdst
+
+def hough_line_prob(img, parameters):
+    dst = img
+
+    try:
+        cdst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
+    except:
+        cdst = img
+        dst = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+
+    print('The parameters of hough line prob are')
+    print(parameters)
+
+    lines = cv.HoughLinesP(dst, 1, np.pi / 180, threshold = parameters['threshold'], minLineLength = parameters['min_length'], maxLineGap = parameters['max_gap'])
+
+    print('The found lines are ')
+    print(lines)
+
+    if lines is not None:
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                cv.line(cdst, (x1, y1), (x2, y2), (0, 0, 255), 1)
+
+    return cdst
+
+def midinter_lines(img, parameters):
+    grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+    return kassens.findAndDrawMidInterLines(grey, parameters['scale'], parameters['theta'])
+
+def all_lines(img, parameters):
+    grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+    return kassens.findAndDrawAllLines(grey, parameters['scale'], parameters['theta'])
 
 def opencv_binarization(img, parameters):
     ret, thresholded = cv.threshold(img, parameters['threshold'], 255, getattr(cv, parameters['type']))
@@ -92,7 +163,7 @@ def opencv_binarization(img, parameters):
 
 
 def canny(img, parameters):
-    edges = cv.Canny(img, parameters['threshold1'], parameters['threshold2'])
+    edges = cv.Canny(img, parameters['threshold1'], parameters['threshold2'], parameters['aperture_size'])
     return edges
 
 
@@ -140,7 +211,7 @@ def good_features_to_track(img, parameters):
 def skeletonize(img, parameters):
     img = skimage.morphology.skeletonize(skimage.util.img_as_bool(skimage.util.invert(img)))
 
-    return skimage.util.invert(skimage.util.img_as_ubyte(img))
+    return skimage.util.img_as_ubyte(skimage.util.invert(skimage.util.img_as_ubyte(img)))
 
 def medial_axis(img, parameters):
     img = skimage.morphology.medial_axis(skimage.util.img_as_bool(skimage.util.invert(img)))

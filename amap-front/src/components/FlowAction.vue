@@ -171,7 +171,7 @@ export default {
   border: 3px solid orange;
 }
 .touch-surface {
-  width: 240px;
+  width: 180px;
   height: 50px;
 }
 .preview {

@@ -439,7 +439,7 @@
      </q-collapsible>
       <q-collapsible icon="flash on" label="Morphology">
         <v-touch v-for="key in Object.keys(actionFlowsAvailable)" :key="'actionFlow-' + key"  @pan="attachDrawItems" @tap="attachDrawItemsClick" :tap-options="{taps: 2}"
-         v-if="['Skeletonize', 'Medial Axis', 'Thin'].includes(key)"> <!-- add SIFT here later and other menans of features -->
+         v-if="['Skeletonize', 'Medial Axis', 'Thin', 'Hough Line', 'Hough Line Prob'].includes(key)"> <!-- add SIFT here later and other menans of features -->
          <flow-chip :text="key" :id="'actionFlows_' + key" class="stationary action-chip-drawer">
          </flow-chip>
        </v-touch>
@@ -451,7 +451,7 @@
           </action-chip>
         </v-touch>
         <v-touch v-for="key in Object.keys(actionFlowsAvailable)" :key="'actionFlow-' + key"  @pan="attachDrawItems" @tap="attachDrawItemsClick" :tap-options="{taps: 2}"
-         v-if="['Ocropus Page Segmentation', 'Seam Carving Text Line Extraction', 'Wavelength Seam Carving'].includes(key)"> <!-- add SIFT here later and other menans of features -->
+         v-if="['Ocropus Page Segmentation', 'Seam Carving Text Line Extraction', 'Wavelength Seam Carving', 'TopBase Lines', 'MidInter Lines', 'All Lines'].includes(key)"> <!-- add SIFT here later and other menans of features -->
          <flow-chip :text="key" :id="'actionFlows_' + key" class="stationary action-chip-drawer">
          </flow-chip>
        </v-touch>
@@ -654,6 +654,38 @@ export default {
             }
           ]
         },
+        'Hough Line': {
+          controls: [
+            {
+              value: 200,
+              min: 0,
+              max: 400,
+              property: 'threshold'
+            }
+          ]
+        },
+        'Hough Line Prob': {
+          controls: [
+            {
+              value: 200,
+              min: 0,
+              max: 400,
+              property: 'threshold'
+            },
+            {
+              value: 100,
+              min: 0,
+              max: 1000,
+              property: 'min_length'
+            },
+            {
+              value: 10,
+              min: 0,
+              max: 100,
+              property: 'max_gap'
+            }
+          ]
+        },
         'Canny': {
           controls: [
             {
@@ -667,6 +699,12 @@ export default {
               min: 0,
               max: 1000,
               property: 'threshold2'
+            },
+            {
+              value: 3,
+              min: 1,
+              max: 20,
+              property: 'aperture_size'
             }
           ]
         },
@@ -729,6 +767,57 @@ export default {
               min: 0,
               max: 200,
               property: 'sigma'
+            }
+          ]
+        },
+        'TopBase Lines': {
+          controls: [
+            {
+              value: 30,
+              min: 0,
+              max: 400,
+              property: 'scale'
+            },
+            {
+              value: 0.5,
+              min: 0,
+              max: 2,
+              step: 0.05,
+              property: 'theta'
+            }
+          ]
+        },
+        'MidInter Lines': {
+          controls: [
+            {
+              value: 30,
+              min: 0,
+              max: 400,
+              property: 'scale'
+            },
+            {
+              value: 0.5,
+              min: 0,
+              max: 2,
+              step: 0.05,
+              property: 'theta'
+            }
+          ]
+        },
+        'All Lines': {
+          controls: [
+            {
+              value: 30,
+              min: 0,
+              max: 400,
+              property: 'scale'
+            },
+            {
+              value: 0.5,
+              min: 0,
+              max: 2,
+              step: 0.05,
+              property: 'theta'
             }
           ]
         },
