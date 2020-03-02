@@ -425,21 +425,21 @@
       </q-collapsible>
       <q-collapsible icon="flash on" label="Filters">
         <v-touch v-for="key in Object.keys(actionFlowsAvailable)" :key="'actionFlow-' + key"  @pan="attachDrawItems" @tap="attachDrawItemsClick" :tap-options="{taps: 2}"
-         v-if="['Blur', 'Guassian Blur', 'Median Blur', 'Bilateral Filter'].includes(key)">
+         v-if="['Blur', 'Gaussian Blur', 'Median Blur', 'Bilateral Filter'].includes(key)">
          <flow-chip :text="key" :id="'actionFlows_' + key" class="stationary action-chip-drawer">
          </flow-chip>
        </v-touch>
       </q-collapsible>
       <q-collapsible icon="flash on" label="Feature Detection">
         <v-touch v-for="key in Object.keys(actionFlowsAvailable)" :key="'actionFlow-' + key"  @pan="attachDrawItems" @tap="attachDrawItemsClick" :tap-options="{taps: 2}"
-         v-if="['Multi Scale Interest Point Detection', 'Canny', 'ORB keypoints', 'Good Features to Track'].includes(key)"> <!-- add SIFT here later and other menans of features -->
+         v-if="['Multi Scale Interest Point Detection', 'Canny', 'ORB keypoints', 'Good Features to Track', 'Harris Corner'].includes(key)"> <!-- add SIFT here later and other menans of features -->
          <flow-chip :text="key" :id="'actionFlows_' + key" class="stationary action-chip-drawer">
          </flow-chip>
        </v-touch>
      </q-collapsible>
       <q-collapsible icon="flash on" label="Morphology">
         <v-touch v-for="key in Object.keys(actionFlowsAvailable)" :key="'actionFlow-' + key"  @pan="attachDrawItems" @tap="attachDrawItemsClick" :tap-options="{taps: 2}"
-         v-if="['Skeletonize', 'Medial Axis', 'Thin', 'Hough Line', 'Hough Line Prob'].includes(key)"> <!-- add SIFT here later and other menans of features -->
+         v-if="['Skeletonize', 'Medial Axis', 'Thin', 'Hough Line', 'Hough Line Prob', 'Hough Circle Transform'].includes(key)"> <!-- add SIFT here later and other menans of features -->
          <flow-chip :text="key" :id="'actionFlows_' + key" class="stationary action-chip-drawer">
          </flow-chip>
        </v-touch>
@@ -654,6 +654,10 @@ export default {
             }
           ]
         },
+        'Otsu Binarization': {
+          controls: [
+          ]
+        },
         'Hough Line': {
           controls: [
             {
@@ -683,6 +687,56 @@ export default {
               min: 0,
               max: 100,
               property: 'max_gap'
+            }
+          ]
+        },
+        'Hough Circle Transform': {
+          controls: [
+            {
+              value: 50,
+              min: 0,
+              max: 400,
+              property: 'threshold1'
+            },
+            {
+              value: 30,
+              min: 0,
+              max: 400,
+              property: 'threshold2'
+            },
+            {
+              value: 0,
+              min: 0,
+              max: 100,
+              property: 'min_radius'
+            },
+            {
+              value: 0,
+              min: 0,
+              max: 100,
+              property: 'max_radius'
+            }
+          ]
+        },
+        'Harris Corner': {
+          controls: [
+            {
+              value: 2,
+              min: 0,
+              max: 50,
+              property: 'blocksize'
+            },
+            {
+              value: 3,
+              min: 1,
+              max: 31,
+              property: 'kernal_size'
+            },
+            {
+              value: 0.04,
+              min: 0,
+              max: 10,
+              property: 'freeparam'
             }
           ]
         },
@@ -724,7 +778,7 @@ export default {
             }
           ]
         },
-        'Guassian Blur': {
+        'Gaussian Blur': {
           controls: [
             {
               value: 5,
