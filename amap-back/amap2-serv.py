@@ -189,7 +189,11 @@ def bilateral_filter(img, parameters):
 
 def orb_keypoints(img, parameters):
     orb = cv.ORB_create()
-    grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    try:
+        grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    except:
+        grey = img
+
     kp = orb.detect(grey,None)
 
     kp = cv.drawKeypoints(img,kp,None,color=(125,0,0), flags=0)
@@ -197,7 +201,10 @@ def orb_keypoints(img, parameters):
 
 def good_features_to_track(img, parameters):
     orb = cv.ORB_create()
-    grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    try:
+        grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    except:
+        grey=img
 
     corners = cv.goodFeaturesToTrack(grey,25,0.01,10)
     corners = np.int0(corners)

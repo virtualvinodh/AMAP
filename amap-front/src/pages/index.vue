@@ -56,11 +56,11 @@
 
       <q-btn flat round large @click="flipbookShow = !flipbookShow" icon="book" size="lg">
         <q-tooltip> Flip Book </q-tooltip>
-      </q-btn>
+      </q-btn>-->
 
       <q-btn flat round large icon="library books" @click="showLeft = !showLeft" size="lg">
         <q-tooltip> Logs </q-tooltip>
-      </q-btn> -->
+      </q-btn>
 
       <q-btn flat round large icon="tune" @click="showScaleTilt = !showScaleTilt" size="lg">
         <q-tooltip> Show scale and tilt </q-tooltip>
@@ -846,7 +846,7 @@ export default {
             {
               value: 10,
               min: 0,
-              max: 50,
+              max: 200,
               property: 'filter_strength'
             },
             {
@@ -1078,7 +1078,7 @@ export default {
       boundingBoxes: [],
       toggleLinesCon: true,
       apiCall: this.$axios.create({
-        baseURL: 'http://localhost:5000/amap/api',
+        baseURL: 'https://bv.informatik.uni-hamburg.de/amapbackend/amap/api',
         timeout: 15000000
       }),
       diva: this.$axios.create({
