@@ -147,6 +147,56 @@ def hough_line_prob(img, parameters):
 
     return cdst
 
+def hough_circle_transform(img, parameters):
+    dst = img
+
+    try:
+        cdst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
+    except:
+        cdst = img
+        cdst = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+
+    circles = cv.HoughCircles(cdst, cv.HOUGH_GRADIENT, 1, 20, param1 = parameters['threshold1'], param2 = parameters['threshold2'], minRadius = parameters['min_radius'], maxRadius = parameters['max_radius'])
+    circles = np.uint16(np.around(circles))
+    for i in circles[0, :]:
+        # draw the outer circle
+        cv.circle(dst, (i[0], i[1]), i[2], (0, 255, 0), 2)
+        # draw the center of the circle
+        cv.circle(dst, (i[0], i[1]), 2, (0, 0, 255), 3)
+
+    return dst
+
+def harris_corner(img, parameters):
+    dst = img
+
+    try:
+        cdst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
+    except:
+        cdst = img
+        cdst = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+
+    # modify the data type
+    # setting to 32-bit floating point
+    operatedImage = np.float32(cdst)
+
+    # apply the cv2.cornerHarris method
+    # to detect the corners with appropriate
+    # values as input parameters
+    #dest = cv2.cornerHarris(operatedImage, 2, 5, 0.07)
+    #The kernel size must be odd and not larger than 31 in function 
+    dest = cv.cornerHarris(operatedImage, parameters['blocksize'], parameters['kernal_size'], parameters['freeparam'])
+
+    #TODO: to increment param values in multiples of 2, 4 etc or in even or odd numbers
+
+    # Results are marked through the dilated corners
+    dest = cv.dilate(dest, None)
+
+    # Reverting back to the original image,
+    # with optimal threshold value
+    img[dest>0.01*dest.max()] = [0, 0, 255]
+
+    return img
+
 def midinter_lines(img, parameters):
     grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
@@ -161,6 +211,9 @@ def opencv_binarization(img, parameters):
     ret, thresholded = cv.threshold(img, parameters['threshold'], 255, getattr(cv, parameters['type']))
     return thresholded
 
+def otsu_binarization(img, parameters):
+    ret, thresholded = cv.threshold(img,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+    return thresholded
 
 def canny(img, parameters):
     edges = cv.Canny(img, parameters['threshold1'], parameters['threshold2'], parameters['aperture_size'])
@@ -172,7 +225,7 @@ def blur(img, parameters):
     return blur
 
 
-def guassian_blur(img, parameters):
+def gaussian_blur(img, parameters):
     blur = cv.GaussianBlur(img, (parameters['kernelX'], parameters['kernelY']), 0)
     return blur
 
