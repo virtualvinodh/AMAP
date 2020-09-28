@@ -22,7 +22,6 @@ import kassens
 
 from datetime import datetime
 
-#### Support black and white
 import locale
 locale.setlocale(locale.LC_ALL, "C")
 
@@ -31,6 +30,7 @@ import io
 app = Flask(__name__)
 CORS(app)
 
+## Default endpoint to check if the server is working
 @app.route('/')
 def hello_world():
     # __file__ refers to the file settings.py
@@ -39,12 +39,13 @@ def hello_world():
 
     return APP_ROOT + ' ' + APP_STATIC + ' ' + 'OpenCV Version ' + cv. __version__ + 'Scikit_image version ' + skimage.__version__
 
-
+## Demo endpoint
 @app.route('/amap/api/demo/<int:num>', methods=['GET'])
 def amap_api(num):
     return "Your API works " + str(num)
 
 
+## Converts Base65 into OpenCV or Numpy formats
 def cv_decode_base64(url, mode=cv.COLOR_RGB2BGR, type="opencv"):
     if 'data:image' not in url:
         print('I am here')
@@ -62,6 +63,7 @@ def cv_decode_base64(url, mode=cv.COLOR_RGB2BGR, type="opencv"):
     return img_format, img
 
 
+## Converts OpenCV/Numpy formats into Base64
 def cv_encode_base64(img_format, img, type = "opencv"):
     extension = img_format.replace('data:image/', '').replace(';base64', '')
 
@@ -83,18 +85,32 @@ def cv_encode_base64(img_format, img, type = "opencv"):
     img_base64 = img_format + ',' + img_data64
     return img_base64
 
+# read as color image by default
+def read_color_default(data):
+    try:
+        img_format, img = cv_decode_base64(data)
+        print('reading as color default')
+    except:
+        img_format, img = cv_decode_base64(data, mode=cv.COLOR_GRAY2BGR)
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        print('reading as grayscale default')
 
+    return img
+
+## WIP
 @app.route('/amap/api/upload', methods=['POST'])
 def upload_image():
     return "success"
 
+## Image Processing Function : Image in/Image out
 def topbase_lines(img, parameters):
     grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     print(parameters)
 
-    return kassens.findAndDrawTopBaseLines(grey, parameters['scale'], parameters['theta'])
+    return kassens.findAndDrawTopBaseLines(grey, parameters['scale'], parameters['theta'], True)
 
+## Image Processing Function : Image in/Image out
 def hough_line(img, parameters):
     dst = img
 
@@ -123,6 +139,7 @@ def hough_line(img, parameters):
 
     return cdst
 
+## Image Processing Function : Image in/Image out
 def hough_line_prob(img, parameters):
     dst = img
 
@@ -147,6 +164,7 @@ def hough_line_prob(img, parameters):
 
     return cdst
 
+## Image Processing Function : Image in/Image out
 def hough_circle_transform(img, parameters):
     dst = img
 
@@ -166,6 +184,7 @@ def hough_circle_transform(img, parameters):
 
     return dst
 
+## Image Processing Function : Image in/Image out
 def harris_corner(img, parameters):
     dst = img
 
@@ -183,7 +202,7 @@ def harris_corner(img, parameters):
     # to detect the corners with appropriate
     # values as input parameters
     #dest = cv2.cornerHarris(operatedImage, 2, 5, 0.07)
-    #The kernel size must be odd and not larger than 31 in function 
+    #The kernel size must be odd and not larger than 31 in function
     dest = cv.cornerHarris(operatedImage, parameters['blocksize'], parameters['kernal_size'], parameters['freeparam'])
 
     #TODO: to increment param values in multiples of 2, 4 etc or in even or odd numbers
@@ -197,49 +216,56 @@ def harris_corner(img, parameters):
 
     return img
 
+## Image Processing Function : Image in/Image out
 def midinter_lines(img, parameters):
     grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-    return kassens.findAndDrawMidInterLines(grey, parameters['scale'], parameters['theta'])
+    return kassens.findAndDrawMidInterLines(grey, parameters['scale'], parameters['theta'], True)
 
+## Image Processing Function : Image in/Image out
 def all_lines(img, parameters):
     grey=cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-    return kassens.findAndDrawAllLines(grey, parameters['scale'], parameters['theta'])
+    return kassens.findAndDrawAllLines(grey, parameters['scale'], parameters['theta'], True)
 
+## Image Processing Function : Image in/Image out
 def opencv_binarization(img, parameters):
     ret, thresholded = cv.threshold(img, parameters['threshold'], 255, getattr(cv, parameters['type']))
     return thresholded
 
+## Image Processing Function : Image in/Image out
 def otsu_binarization(img, parameters):
     ret, thresholded = cv.threshold(img,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
     return thresholded
 
+## Image Processing Function : Image in/Image out
 def canny(img, parameters):
     edges = cv.Canny(img, parameters['threshold1'], parameters['threshold2'], parameters['aperture_size'])
     return edges
 
 
+## Image Processing Function : Image in/Image out
 def blur(img, parameters):
     blur = cv.blur(img, (parameters['kernelX'], parameters['kernelY']))
     return blur
 
-
+## Image Processing Function : Image in/Image out
 def gaussian_blur(img, parameters):
     blur = cv.GaussianBlur(img, (parameters['kernelX'], parameters['kernelY']), 0)
     return blur
 
-
+## Image Processing Function : Image in/Image out
 def median_blur(img, parameters):
     blur = cv.medianBlur(img, parameters['kernel'])
     return blur
 
 
+## Image Processing Function : Image in/Image out
 def bilateral_filter(img, parameters):
     blur = cv.bilateralFilter(img, parameters['kernel'], parameters['sigma'], parameters['sigma'])
     return blur
 
-
+## Image Processing Function : Image in/Image out
 def orb_keypoints(img, parameters):
     orb = cv.ORB_create()
     try:
@@ -252,6 +278,7 @@ def orb_keypoints(img, parameters):
     kp = cv.drawKeypoints(img,kp,None,color=(125,0,0), flags=0)
     return kp
 
+## Image Processing Function : Image in/Image out
 def good_features_to_track(img, parameters):
     orb = cv.ORB_create()
     try:
@@ -268,31 +295,37 @@ def good_features_to_track(img, parameters):
 
     return img
 
+## Image Processing Function : Image in/Image out
 def skeletonize(img, parameters):
     img = skimage.morphology.skeletonize(skimage.util.img_as_bool(skimage.util.invert(img)))
 
     return skimage.util.img_as_ubyte(skimage.util.invert(skimage.util.img_as_ubyte(img)))
 
+## Image Processing Function : Image in/Image out
 def medial_axis(img, parameters):
     img = skimage.morphology.medial_axis(skimage.util.img_as_bool(skimage.util.invert(img)))
 
     return skimage.util.invert(skimage.util.img_as_ubyte(img))
 
+## Image Processing Function : Image in/Image out
 def thin(img, parameters):
     img = skimage.morphology.thin(skimage.util.img_as_bool(skimage.util.invert(img)))
 
     return skimage.util.invert(skimage.util.img_as_ubyte(img))
 
+## Image Processing Function : Image in/Image out
 def nonlocal_denoising_gray(img, parameters):
     img = cv.fastNlMeansDenoising(img,None,parameters['filter_strength'],parameters['template'],parameters['search'])
 
     return img
 
+## Image Processing Function : Image in/Image out
 def nonlocal_denoising_color(img, parameters):
     img = cv.fastNlMeansDenoisingColored(img,None,parameters['filter_strength'], parameters['filter_strength_color'], parameters['template'],parameters['search'])
 
     return img
 
+## Image Processing Function : Image in/Image out
 def add_random_noise(img, parameters):
     img = skimage.util.random_noise(img)
 
@@ -305,6 +338,7 @@ def add_random_noise(img, parameters):
 
     return skimage.util.img_as_ubyte(img)
 
+## Image Processing Function : Image in/Image out
 def histogram_eq_color(img, parameters):
     try:
         img_yuv = cv.cvtColor(img, cv.COLOR_BGR2YUV)
@@ -319,23 +353,39 @@ def histogram_eq_color(img, parameters):
 
     return equ
 
+## Image Processing Function : Image in/Image out
+def contour(img, parameters):
+    _, cnts, hierarchy = cv.findContours(img, cv.RETR_EXTERNAL,
+        cv.CHAIN_APPROX_SIMPLE)
 
+    cnt = cnts[-1]
+    print(cnts)
+
+    (x,y),radius = cv.minEnclosingCircle(cnt)
+
+    print(x)
+    print(y)
+    print(radius)
+    print(cv.__version__)
+    print(hierarchy)
+
+    return img
+
+## Image Processing Function : Image in/Image out endpoint
 @app.route('/amap/api/processing', methods=['POST'])
 def processing():
     parameters = json.loads(request.json['parameters'])
+
+    # Which processing function to call
     process = request.json['processing'].replace(' ', '_').lower()
 
     print('Peforming from processing')
 
-    ## Some processes need color
-    ## As of now everything is read in greyscale
-    ## Double check the below conversion thing
-
-    # Include reading black and white images
-    # Both of these need greyscale images
+    # if processing is done by a numpy library convert them into nparray else convert into opencv format
     if process in ['add_random_noise', 'skelotonize', 'medial_axis', 'thin']:
         img_format, img = cv_decode_base64(request.json['url'], type = "nparray")
     else:
+        # Choose color or greyscal reading of image based on the process
         if process in ['canny', 'opencv_binarization']:
             try:
                 img_format, img = cv_decode_base64(request.json['url'], mode=cv.COLOR_GRAY2BGR)
@@ -355,16 +405,18 @@ def processing():
 
     print('Calling the method ' + process)
 
+    # Call the corresponding image processing fucntion
     img_output = getattr(sys.modules[__name__], process)(img, parameters)
 
     print('Returning the results')
 
+    #rencoding the resultant image as base64 and returning it
     if process in ['add_random_noise', 'skeletonize', 'medial_axis', 'thin']:
         return jsonify({'results': cv_encode_base64 (img_format, img_output, type = "nparray")})
     else:
         return jsonify({'results': cv_encode_base64 (img_format, img_output)})
 
-
+# Create a file in th eserver for writer identification
 def createFile(url, filename):
     img_format, img_data = url.split(',')[0], url.split(',')[1]
 
@@ -382,24 +434,7 @@ def createFile(url, filename):
     with open(filename, 'wb') as f:
         f.write(imgdata)
 
-
-def contour(img, parameters):
-    _, cnts, hierarchy = cv.findContours(img, cv.RETR_EXTERNAL,
-        cv.CHAIN_APPROX_SIMPLE)
-
-    cnt = cnts[-1]
-    print(cnts)
-
-    (x,y),radius = cv.minEnclosingCircle(cnt)
-
-    print(x)
-    print(y)
-    print(radius)
-    print(cv.__version__)
-    print(hierarchy)
-
-    return img
-
+# Endpoint for writer identification
 @app.route('/amap/api/writerid', methods=['POST'])
 def writerid():
     parameters = json.loads(request.json['parameters'])
@@ -407,12 +442,14 @@ def writerid():
 
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))  # refers to application_top
 
+    ## What keypoint detection method to choose SIFT or FAST
     method = parameters['type']
     if method == 'SIFT':
         value = str(parameters['rotation'])
     else:
         value = str(parameters['keypoints'])
 
+    # Which writer identication method to choose
     if process == 'npnn':
         time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
@@ -431,6 +468,8 @@ def writerid():
         os.mkdir(unknown_f)
 
         os.mkdir(unknown_f + '/u1')
+
+        # Create two folders known and unknown images
         if parameters['unknown']['type'] == 'imagesM':
             createFile(parameters['unknown']['url'], unknown_f + '/u1/some')
         elif parameters['unknown']['type'] == 'collectionBooks':
@@ -453,6 +492,7 @@ def writerid():
 
         print('FAST 80 ' + unknown + ' ' + known + ' ' + result)
 
+        ## pass the parameters to the command line function for performing writer identification
         sp.run([APP_ROOT + '/npnn/' + 'Writer_Identification_WFA.exe' + ' ' + method + ' ' + value + ' ' + unknown + ' ' + known + ' ' + result], shell=True, check=True, cwd=APP_ROOT + '/npnn')
 
         shutil.rmtree(unknown_f)
@@ -460,9 +500,11 @@ def writerid():
 
         print('Reading CSV files')
 
+        # read the result file
         result_file = APP_ROOT + '/npnn/' + 'result' + time + '.csv'
         print(result_file)
 
+        # return the relevant results back
         with open(result_file, newline='') as csvfile:
             spamreader = csv.reader(csvfile)
 
@@ -476,27 +518,17 @@ def writerid():
 
         print(match)
 
+        #remove the created folders
         os.remove(result_file)
 
     return jsonify({'results': match})
 
-
-def read_color_default(data):
-    try:
-        img_format, img = cv_decode_base64(data)
-        print('reading as color default')
-    except:
-        img_format, img = cv_decode_base64(data, mode=cv.COLOR_GRAY2BGR)
-        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-        print('reading as grayscale default')
-
-    return img
-
-
+# distance between two points
 def dist(p1, p2):
     d = ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
     return d
 
+# Keyword detection method from Thomas Konidaris
 @app.route('/amap/api/keyword', methods=['POST'])
 def keyword_spotting():
     parameters = json.loads(request.json['parameters'])
@@ -505,10 +537,12 @@ def keyword_spotting():
 
     time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
+    # Create files
     createFile(image_base64, 'image' + time)
 
     boxes_all = []
 
+    # iterate through images where wordspotting needs to be performed
     for i, image in enumerate(parameters['known']):
         if image['url'] != '':
             createFile(image['url'], 'query' + str(i) + time)
@@ -535,6 +569,7 @@ def keyword_spotting():
                 coord = result[0]
                 boxes.append([coord[0], coord[2], abs(coord[1]-coord[0]), abs(coord[3]-coord[2]), coord[4]])
 
+            # remove the resulting images
             os.remove('query'+ str(i) + time + '.jpg')
 
             #boxes_all.append(boxes)
@@ -544,6 +579,7 @@ def keyword_spotting():
 
     return jsonify({'boxes': boxes_all})
 
+# Code for Non Maximum Supression to avoid overlappig of bounding boxes
 def non_max_suppression_fast(boxes, overlapThresh):
     # if there are no boxes, return an empty list
     if len(boxes) == 0:
@@ -601,6 +637,7 @@ def non_max_suppression_fast(boxes, overlapThresh):
     return boxes[pick].astype("int")
 
 
+# endpoint for wordspotting using OpenCV cross-correlation
 @app.route('/amap/api/template', methods=['POST'])
 def template_matching():
     parameters = json.loads(request.json['parameters'])
@@ -670,7 +707,7 @@ def template_matching():
 
     return jsonify({'boxes': boxes_all})
 
-
+# Endpoint for tesseract page segmentation
 @app.route('/amap/api/segment/tesseract', methods=['POST'])
 def segment_tesseract():
     if 'data:image' not in request.json['url']:

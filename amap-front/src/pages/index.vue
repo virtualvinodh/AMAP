@@ -1,17 +1,9 @@
-<template>
-  <!-- save and load protractors/scales -->
-  <!-- delete instruments -->
-  <!-- Update screen after fribourg load -->
-  <!-- saving and loading the workspace fix it properly -->
-
-  <!-- Fix for collection books -->
-  <!-- Fix connecting lines disappearing when pages change -->
-  <!-- Send messages -->
-
+f<template>
   <q-layout>
 
   <q-layout-header v-model="showHeader">
 
+    <!-- The top toolbar -->
     <q-toolbar color="dark">
 
       <input type="file" @change="uploadLocalImageM" ref="localUpload" style="display:none" multiple/>
@@ -90,7 +82,10 @@
       <circle cx="121" cy="40" r="45" stroke="black" stroke-width="3" fill="red" />
     </svg> -->
 
+    <!-- different elements of the AMAP VPL UI are dynamically generated below -->
+
     <!-- Images -->
+    <!-- This is for single images -->
 
     <v-touch @panstart="rectStart" @panmove="rectMove" @panend="rectEnd"
               @pinchstart="scaleN('start', ...arguments)" @pinchmove="scaleN('move', ...arguments)" @pinchend="scaleN('end', ...arguments)"
@@ -128,6 +123,8 @@
     </v-touch>
 
     <!-- Books Collection -->
+    <!-- This is for a collection of images -->
+
     <v-touch @panstart="rectStart" @panmove="rectMove" @panend="rectEnd"
              @click.native="collectionBooksClick(index,...arguments)"
              @pinchstart="scaleN('start', ...arguments)" @pinchmove="scaleN('move', ...arguments)" @pinchend="scaleN('end', ...arguments)"
@@ -387,6 +384,8 @@
   <!-- <carbon-copy :style="{left: '200px', top: '300px', height: '400px', width: '400px', position: 'absolute', 'z-index': 200}"> </carbon-copy> -->
   <!-- Creating a pseduomanuscript with bits and pieces from everything else -->
 
+  <!-- Processing selection menu on the left -->
+
   <q-layout-drawer side="left" v-model="showLeft" class="bg-positive">
 
     <b>Activity Log </b>
@@ -495,6 +494,7 @@
 
   <!-- view settings that don't permanents affect the manuscript -->
   <!-- They get attached to the bottom -->
+  <!-- Bottom toolbar -->
   <q-layout-footer>
     <q-toolbar color="dark">
 
@@ -548,6 +548,7 @@
 
 <script>
 import {Dialog, Notify, ActionSheet, QToolbar, QChip, QKnob, QSpinnerGears, QInnerLoading, QTooltip, QLayout, QLayoutDrawer, QCollapsible, QList, QLayoutHeader, QLayoutFooter, QPageContainer} from 'quasar'
+
 import 'jimp/browser/lib/jimp'
 import MImage from '../components/MImage.vue'
 import Ruler from '../components/Ruler.vue'
@@ -628,17 +629,20 @@ export default {
       loadingdata: false,
       showIcons: true,
       imagesM: [],
+      // Other elements attach to the below
       attachingElements: ['imagesM', 'imagesMCrop', 'rulers', 'protractors', 'collectionBooks'],
+      // Those elements that can be attached to others
       attachedElements: ['settingKnobs', 'chipsAction', 'actionFlows', 'boxesText', 'identifyWriters', 'matchTemplates', 'actionCopies'],
       loading: true,
       // x1 y1 x2 y2
       imagesMCrop: [],
       collectionBooks: [],
-      // Change passing expicit colors
-      // The component shoudl pass active/inactive etc and the local veu file shold
+      // Default values of the various image processing methods
       actionFlowsAvailable: {
         'OpenCV Binarization': {
+          // The list of controllable parameters for this method
           controls: [
+            // text property
             {
               value: 0,
               min: 0,
@@ -646,6 +650,7 @@ export default {
               property: 'type',
               textOptions: ['THRESH_BINARY', 'THRESH_BINARY_INV', 'THRESH_TRUNC', 'THRESH_TOZERO', 'THRESH_TOZERO_INV']
             },
+            // Numerical property
             {
               value: 130,
               min: 0,
@@ -891,6 +896,7 @@ export default {
             }
           ]
         },
+        // If they have no parameters they must be empty
         'Histogram Eq Color': {},
         'Contour': {},
         'ORB keypoints': {},
@@ -1023,7 +1029,7 @@ export default {
         }
       },
       actionFlows: [],
-      // Rewrite this to be generic
+      // These segement the image and return bounding boxes
       chipsActionAvailable: {
         'segmentLine': {},
         'segmentChar': {},
@@ -1048,6 +1054,7 @@ export default {
       linesCon: [],
       rulers: [],
       logs: [],
+      // This is for Writer Identification
       identifyWritersAvailable: {
         'NBNN': {
           active: false,
@@ -1069,6 +1076,7 @@ export default {
               min: 0,
               max: 100,
               property: 'keypoints',
+              // This is shown only if the /type/ parameters is FAST
               dependant: ['type', 'FAST']
             },
             {
@@ -1076,6 +1084,7 @@ export default {
               min: 0,
               max: 360,
               property: 'rotation',
+              // This is shown only if the /type/ parameters is SIFT
               dependant: ['type', 'SIFT']
             }
           ],
@@ -1089,6 +1098,7 @@ export default {
         }
       },
       identifyWriters: [],
+      // Word Spotting using Cross-Correlation
       matchTemplatesAvailable: {
         'Word Spot.': {
           active: false,
@@ -1122,6 +1132,8 @@ export default {
         }
       },
       descriptions: {
+        // Descriptions for the methods
+        // They key must match the key in actionFlows available
         'OpenCV Binarization': 'It converts image black and white, thereby removing any background noise and make the foreground prominent. Uses OpenCV for this process and provides two parameters than be tuned to get the desired binarized image.',
         'Otsu Binarization': 'It converts image black and white, thereby removing any background noise and make the foreground prominent. Provides optimal binarization automatically without any parameters.'
       },
@@ -1131,19 +1143,20 @@ export default {
       // coordinates: [left, top, width, height]
       boundingBoxes: [],
       toggleLinesCon: true,
+      // API call to the backend
       apiCall: this.$axios.create({
-        baseURL: 'https://bv.informatik.uni-hamburg.de/amapbackend/amap/api',
+        baseURL: 'http://localhost:5000/amap/api',
         timeout: 15000000
       }),
+      // API Call to DIVA Services
       diva: this.$axios.create({
         baseURL: 'http://divaservices.unifr.ch/api/v2/',
         timeout: 60000
       })
     }
   },
-  // Think about removing the constant looping
-  // Perhaps it's slowing the process
   computed: {
+    // Allows dynamic setting of the filter properties in the bottom toolbar menu
     settingKnobsTransforms: function () {
       var transforms = {}
       for (var i = 0; i < this.settingKnobs.length; i++) {
@@ -1167,6 +1180,7 @@ export default {
       }
       return transforms
     },
+    // Most of the functions below  re-calculate the CSS when co-ordinates are changes and enable the dynamic positioning of the elements on screen
     actionFlowsStyles: function () {
       return this.componentStyles('actionFlows')
     },
@@ -1429,6 +1443,8 @@ export default {
       var elements = scaleElements[i]
       for (var j = 0; j < this[elements].length; j++) {
         // Find a better solution that below
+        // Below is tied to the imageM component, any change in ImageM will change the order of child nodes
+        // This must be changed manually
         var imageM
         if (elements === 'imagesM') {
           imageM = this.$refs[elements + j][0].$el.childNodes[1].childNodes[0].childNodes[0].childNodes[0]
@@ -1446,16 +1462,10 @@ export default {
     }
   },
   methods: {
-    // http://divaservices.unifr.ch/api/v2/imageprocessing/multiscaleinterestpointdetection/1
-    // implement this. add option to read output that has visualization as true
-    // think about what to do with methods that return json (points, bounding boxes, polygons)
-    // Think about writnig methods for that
-    // Cross check with all the methods of diva services and make sure most of them are supported
-    // Write mail to marcel about the highlight parameters
-    // fix the width button of the chip: function () {}
     displayScaleTilt: function () {
-
     },
+    // It's called DemoMove but it's actually a move function
+    // Ignore the prefix
     demoMove: function (event) {
       event['deltaX'] = event.delta.x
       event['deltaY'] = event.delta.y
@@ -1492,6 +1502,7 @@ export default {
         ok: false
       })
     },
+    // Hide all non-Image elements on screen
     hideAll: function () {
       // var dhis = this
       this.hideAllToggle = !this.hideAllToggle
@@ -1543,10 +1554,12 @@ export default {
     },
     demovalfn: function () {
     },
+    // delete log entry
     deleteLog: function (index) {
       // console.log('Trying delete logs')
       this.$set(this.logs, index, null)
     },
+    // Rerun a specific log entry
     rerunLog: function (index) {
       var refComp = this.logs[index].refComp
       var refIndex = this.logs[index].refIndex
@@ -1615,6 +1628,7 @@ export default {
     deleteBoundingBox: function (index) {
       this.$set(this.boundingBoxes, index, null)
     },
+    // Dim image processign elements when displaying original non-processed image
     dimElements: function (elements, index, dimming) {
       for (var i = 0; i < this.attachedElements.length; i++) {
         var elementsType = this.attachedElements[i]
@@ -1629,6 +1643,7 @@ export default {
         }
       }
     },
+    // Display original image
     showOriginalImagesM: function (elements, index, event) {
       var imageM = this[elements][index]
 
@@ -1674,6 +1689,7 @@ export default {
         }
       }
     },
+    // Resizing bounding boxes
     boundBoxResizeUL: function (index, event) {
       // console.log('resize event')
 
@@ -1960,6 +1976,7 @@ export default {
 
       // console.log('The movement is ' + event)
     },
+    // Get list of available image processing methods from DIVAServices
     getDivaList: async function (event) {
       var result = await this.getListGet('http://divaservices.unifr.ch/api/v2/')
       var irrelevantMethods = ['ICDAR2017 HisDocLayoutComp Baseline Evaluation', 'ICDAR2017 HisDocLayoutComp Layout Evaluation', 'ICDAR2017 HisDocLayoutComp Line Evaluation',
@@ -2008,6 +2025,7 @@ export default {
       }
       // console.log(this.actionFlowsAvailable)
     },
+    // Genering function to retrieve results of a GET request from a URL
     getListGet: function (url) {
       return new Promise(resolve => {
         this.$axios.get(url, {})
@@ -2019,6 +2037,7 @@ export default {
           })
       })
     },
+    // Genering function to retrieve results of a POST request from a URL
     getResultPost: function (url, data = {}) {
       return new Promise(resolve => {
         this.$axios.post(url, data)
@@ -2395,6 +2414,7 @@ export default {
       }
       return {'files': [postBody]}
     },
+    // Incoking the DIVA api to get the results
     getDivaProcessResults: async function (imgURL, URL, parameters) {
       console.log('uploading image')
 
@@ -2441,6 +2461,7 @@ export default {
 
       return new Promise(resolve => { resolve(result) })
     },
+    // This retrieves results for a method by invoking the necessary API
     getFlowProcessResults: async function (imgURL, actionFlow, parameters) {
       var resultURL = ''
       var response = ''
@@ -2480,6 +2501,7 @@ export default {
 
       return resultURL
     },
+    // Chain propagation of the action
     getFlowProcessUpdateOthers: async function (index, imagesMCon, prevParameters = [], loopExists) {
       // search for selected components
       var actionFlowsCon = this.getConnectedEl1toEl2('actionFlows', index, 'actionFlows')
@@ -2545,6 +2567,7 @@ export default {
         idW.active = false
       }
     },
+    // Cross Correlation Word Spotting
     matchTemplatesProcess: async function (index, event) {
       var mT = this.matchTemplates[index]
       // console.log(mT)
@@ -2710,7 +2733,8 @@ export default {
 
       return results
     },
-    // Processing Action Flows
+    // Processing Action Flows : This processes the image passed to it based on the image processing method
+    // It then passes the result to the other methods in the chain
     flowActionProcess: async function (index, prevParameters = [], loopExists = false) {
       var actionFlow = this.actionFlows[index]
       var imgURL = ''
@@ -3091,6 +3115,7 @@ export default {
       }
       return false
     },
+    // Find the index of the source image connected to an process/action chip
     getConnectedImageM: function (index) {
       if (this.actionFlows[index].refComp === 'imagesM') {
         return this.actionFlows[index].refIndex
@@ -3099,6 +3124,7 @@ export default {
       }
       return false
     },
+    // Find the index of the source collection book connected to an process/action chip
     getConnectedCollectionBooks: function (index) {
       if (this.actionFlows[index].refComp === 'collectionBooks') {
         return this.actionFlows[index].refIndex
@@ -3123,6 +3149,7 @@ export default {
         }
       }
     },
+    // Detect collision between moving elements and static icons
     detectCollisionIcons: function (object, objectIndex, type) {
       try {
         var obj1 = this.$refs[object + objectIndex][0].$el
@@ -3148,6 +3175,9 @@ export default {
         return false
       }
     },
+    // moves the elements around the screen and also checks if two eleemnts are colliding
+    // if two elements are colliding and they are compatible
+    // the two elements are attached
     moveGeneric: function (node, event) {
       var pinchCheck = typeof this.pinchTime === 'undefined' ||
                        Date.now() - this.pinchTime > 300
@@ -3260,6 +3290,7 @@ export default {
         this.moveComponent(elements, index, event)
       }
     },
+    // Function called when one element get attached to another element
     attachedElementsFix: function (nonMoving, nonMovingIndex, moving, movingIndex, event) {
       // this[moving][movingIndex].coord[0] += this[moving][movingIndex].delCoord[0]
       // this[moving][movingIndex].coord[1] += this[moving][movingIndex].delCoord[1]
@@ -3523,6 +3554,7 @@ export default {
 
       this.scaleGeneric(node, event, category)
     },
+    // event for clicking the zoom icons
     zoomClick: function (elements, index, type) {
       console.log('We are here')
       if (type === 'in') {
@@ -3596,6 +3628,7 @@ export default {
 
       this.rotateGeneric(node, event)
     },
+    // Event for rotate icons
     rotateClick: function (elements, index, direction) {
       if (direction === 'right') {
         this[elements][index].tilt += 5
@@ -3607,6 +3640,7 @@ export default {
       this.$set(this[elements], index, this[elements][index])
       this.positionImagesAttach(elements, parseInt(index), this[elements][index].actRotation, 'rotate')
     },
+    // Rotate a component
     rotateGeneric: function (node, event) {
       var elements = node.id.split('-')[0]
       var index = node.id.split('-')[1]
@@ -3735,6 +3769,9 @@ export default {
       // console.log(event)
     },
     // Fix this for flowchips, actioships with preprocessing and books
+    // Currently, this works only for copying
+    // Copies all the bounding boxes in an image into a collectionBook
+    // Must be attached to a actionchip returning sementation results
     repeatAction: async function (actionCopy) {
       var imagesMCon
       var rootComp
@@ -3844,6 +3881,7 @@ export default {
       }
       // actionCopy.progress = false
     },
+    // Copying a section of image when double clicking inside the bounding box
     cropImage: function (imageM, bBox, type = 'imagesM') {
       return new Promise(resolve => {
         var jimpSrc = imageM.url
@@ -3867,6 +3905,7 @@ export default {
           })
       })
     },
+    // Copying an Image on douple clicking the image
     copyImageSelected: function (event) {
       var index = event.target.id.split('-')[1]
 
@@ -3983,6 +4022,7 @@ export default {
     onCtxOpen: function (locals) {
       this.CtxRef = locals.ref
     },
+    // The Red Action Chips that either Segment or perform OCR
     actionChipAction: async function (imageRef, index, elements = 'imagesM') {
       var actionChip = this.chipsAction[index]
       if (actionChip.action === 'segmentHist') {
@@ -3997,6 +4037,7 @@ export default {
         await this.textEntryOCRCreate(imageRef, index)
       }
     },
+    // OCR Action
     textEntryOCRCreate: async function (imageRef, actionChip) {
       // console.log()
       var data = {
@@ -4017,6 +4058,8 @@ export default {
       // console.log(data)
 
       // console.log('Sending Results')
+
+      // Google Vision API key must be appended below to make the OCR functioning
       var result = await this.getResultPost('https://vision.googleapis.com/v1/images:annotate?key=', data)
       // console.log('Got the results back')
       var text = result.data.responses[0].fullTextAnnotation.text
@@ -4058,6 +4101,7 @@ export default {
       })
       // console.log(this.boxesText[0])
     },
+    // Segment Images
     segmentImagesM: async function (imageRef, index, type = 'tesseract', elements = 'imagesM') {
       var response = ''
       var boxes = []
@@ -4185,16 +4229,19 @@ export default {
       actionChip.loading = false
       // console.log('boundingBoxes added')
     },
-
+    // Event when Setting filters are truend
     knobTurned: function (index, event) {
       // console.log('knob turned')
       this.settingKnobs[index].value = event
       this.$set(this.settingKnobs, index, this.settingKnobs[index])
       this.settingKnobs[index].initValue = event
     },
+    // Remove all bounding boxes in the worksing space
     clearBoundingBoxes: function () {
       this.boundingBoxes = []
     },
+    // Enable or Disable Text Entry boxes
+    // Used for OCR
     chipsActionDisable: function (index, disability) {
       var chipAction = this.chipsAction[index]
 
@@ -4222,6 +4269,7 @@ export default {
         this.$set(this.boxesText, indexBT, this.boxesText[indexBT])
       }
     },
+    // Toggling the visiblity of the bounding boxes resulting from an action chip
     chipsActionToggle: function (index, action, visibility) {
       var chipAction = this.chipsAction[index]
 
@@ -4235,6 +4283,8 @@ export default {
         // console.log(this.boxesText[indexBT].visibility)
       }
     },
+    // Toggling the visiblity of bounding boxes
+    // It also handles bounding box deletion (parameter: action)
     boundingBoxesToggle: function (key, action, flexible = false) {
       // console.log('Deleting old values')
       for (var i = 0; i < this.boundingBoxes.length; i++) {

@@ -9,37 +9,18 @@ import math
 import cv2
 import matplotlib.pyplot as plt
 import os
-import threading
-import concurrent
-import multiprocessing.managers as managers
-from concurrent.futures import ProcessPoolExecutor
 from enum import Enum
-from sklearn.feature_extraction import image
-from multiprocessing import Process, Value, RawArray
 
-def sliceImage(img, title='none'):
+def sliceImage(img):
     scheibe = img[:,int(img.shape[1] / 2):int(img.shape[1] / 2) + 1]
-    # scheibe = img[:,40:41]
     flat_list = [item for sublist in scheibe for item in sublist]
     #print(flat_list)
     plt.plot(flat_list)
-    axes = plt.gca()
-    maxValue = max(flat_list)
-    minValue = min(flat_list)
-    # print("###### " + str(maxValue))
-    if (maxValue > 255):
-        axes.set_ylim([minValue * 1.1, maxValue * 1.1])
-    elif (maxValue < 2):
-        axes.set_ylim([-1, 1])
-    else:
-        axes.set_ylim([-10, 260])
-    # plt.title(title)
     plt.show()
-    return flat_list
 
 def filterGabor(img, lineHeight, shift, theta, folder, shouldWriteImage):
-    scaled_kernel = cv2.getGaborKernel(ksize = (int(4 * lineHeight), int(4 * lineHeight)), 
-                                       sigma = lineHeight * 1, # TODO remove: laut paper * 1; aber bei syntetische Daten ist 0.5 besser
+    scaled_kernel = cv2.getGaborKernel(ksize = (int(4 * lineHeight), int(4 * lineHeight)),
+                                       sigma = lineHeight * 1, # laut paper * 1; aber bei syntetische Daten ist 0.5 besser
                                        theta = np.pi * theta,
                                        lambd = 2*lineHeight,
                                        gamma = 0.5,
@@ -51,12 +32,12 @@ def filterGabor(img, lineHeight, shift, theta, folder, shouldWriteImage):
         cv2.imwrite(folder + "gabor_kernel.png", scaled_kernel * 255)
         #plt.show()
     scaled_filtered_img = cv2.filter2D(img, cv2.CV_32F, scaled_kernel)
-    sliceImage(scaled_kernel)
+    #sliceImage(scaled_kernel)
     #cv2.imshow('scaled filtered image', scaled_filtered_img)
     return scaled_filtered_img
-    
+
 def findLineEndings(img, lineHeight, theta):
-    kernel_lineEnding = cv2.getGaborKernel(ksize = (int(10 * lineHeight), int(10 * lineHeight)), 
+    kernel_lineEnding = cv2.getGaborKernel(ksize = (int(10 * lineHeight), int(10 * lineHeight)),
                                        sigma = lineHeight * 1.5,
                                        theta = np.pi * (theta + 0.5),
                                        lambd = lineHeight * 7,
@@ -68,7 +49,7 @@ def findLineEndings(img, lineHeight, theta):
     #sliceImage(scaled_kernel)
     #cv2.imshow('scaled filtered image', scaled_filtered_img)
     return scaled_filtered_img
-    
+
 
 class Engine(object):
     def __init__(self, parameters):
@@ -82,32 +63,32 @@ class Pixel:
         self.col = col
         self.row = row
         self.neighbours = []
-    
+
     def __str__(self):
         return "(" + str(self.col) + ", " + str(self.row) + ")"
-    
+
     def __repr__(self):
         return str(self)
-    
+
     def __eq__(self, obj):
         return isinstance(obj, Pixel) and obj.col == self.col and obj.row == self.row
-    
+
     def __mul__(self, other):
         self.col = self.col * other
         self.row = self.row * other
         return self
-    
+
     def __rmul__(self, other):
         return self.__mul__(other)
-    
+
     def __add__(self, other):
         self.col = self.col + other
 #        self.row = self.row + other
         return self
-    
+
     def __radd__(self, other):
         return self.__add__(other)
-    
+
     def addNeighbour(self, pixel):
         isinstance(pixel, Pixel)
         self.neighbours.append(pixel)
@@ -134,7 +115,7 @@ class Line:
         self.norm_vector = ()
         self.direction_vector = ()
         self.already_written = False
-    
+
     def __str__(self):
         result = "["
         for e in self.pixels:
@@ -142,10 +123,10 @@ class Line:
         result = result[:-2]
         result = result + "]"
         return result
-    
+
     def __repr__(self):
         return str(self)
-    
+
     def completeLine(self):
         visited = []
         self.ends = self.__findEndOfLine(visited, self.pixels[0])
@@ -154,7 +135,7 @@ class Line:
         if (self.end == self.start and len(self.pixels) > 1):
             print("ERROR: could not find all endings!. Pxels: " + str(len(self.pixels)))
         return self.__calcNormalVector()
-        
+
     def __calcNormalVector(self):
         count = 0
         avg_dy = 0
@@ -206,7 +187,7 @@ class Line:
 #                img[a[0], a[1]] = (0, 0, 255)
 #        img[np.round(tmp.row), np.round(tmp.col)] = 255
 #        cv2.imwrite("/home/gares/Dokumente/MasterThesis/results/norm_vector_" + str(self.pixels[0]) + ".png" , img)
-    
+
     def isInMargin(self, line, distance):
         isinstance(line, Line)
         count = 0
@@ -243,7 +224,7 @@ class Line:
 #                        if (i < img.shape[1] and j < img.shape[0]):
 #                            img[j, i] = (255, 255, 255)
         return count > len(line.pixels) * 0.7
-        
+
     def addPixel(self, col, row):
         tmp = Pixel(col, row)
         if (tmp not in self.pixels):
@@ -263,11 +244,11 @@ class Line:
                     p.addNeighbour(tmp)
 #        else:
 #            print("Not Added: " + str(tmp))
-    
+
     def hasTwoNeighbours(self, pixel):
         isinstance(pixel, Pixel)
         return len(pixel.neighbours) > 1
-    
+
     def getEndOfLine(self):
         if (len(self.ends) == 1 and self.pixels[0] not in self.ends):
             self.ends.append(self.pixels[0])
@@ -278,7 +259,7 @@ class Line:
 #            if (deltaWidth > 0 or deltaHeight > 0):
 #                result = pixel
         return result
-    
+
     def getStartOfLine(self):
         if (len(self.ends) == 1 and self.pixels[len(self.pixels) - 1] not in self.ends):
             self.ends.append(self.pixels[len(self.pixels) - 1])
@@ -290,7 +271,7 @@ class Line:
 #            if (deltaWidth < 0 or deltaHeight < 0):
 #                result = pixel
         return result
-    
+
     def __findEndOfLine(self, visited, p):
         isinstance(p, Pixel)
         finished = False
@@ -322,8 +303,8 @@ class Line:
                 finished = True
 #        print("Found Endings: " + str(ends))
         return ends
-        
-    
+
+
     def distance(self, line, orientation):
         isinstance(line, Line)
         shortest, dis = self.__shortesDistances(line)
@@ -337,7 +318,7 @@ class Line:
         result = dis * weight
 #        print("From: " + str(endPixel) + " to " + str(startPixel) + "; Weight: " + str(weight) + "; result = " + str(result))
         return result
-    
+
     def __shortesDistances(self, line):
         distance_list = []
         points = []
@@ -355,7 +336,7 @@ class Line:
         points.append((self.start, line.start))
         idx = np.argmin(distance_list)
         return points[idx], distance_list[idx]
-    
+
     def merge(self, line):
         isinstance(line, Line)
         shortest, dis = self.__shortesDistances(line)
@@ -472,15 +453,15 @@ def getThreshold(scaled_filtered_img):
     print("Overall Average of Result: ", overall_average)
     print("Positiv Average of Result: ", positive_avg)
     print("Negativ Average of Result: ", negative_avg)
-    # plt.axhline(y=positive_avg*1.2)
-    # plt.axhline(y=negative_avg*1.2)
-    # plt.axhline(y=overall_average)
+    plt.axhline(y=positive_avg*1.2)
+    plt.axhline(y=negative_avg*1.2)
+    plt.axhline(y=overall_average)
     #plt.show()
     threshold_pos = positive_avg * 1.2 + overall_average
     threshold_neg = negative_avg * 1.6 + overall_average
-    # plt.axhline(y=threshold_pos)
-    # plt.axhline(y=threshold_neg)
-    # plt.axhline(y=overall_average)
+    plt.axhline(y=threshold_pos)
+    plt.axhline(y=threshold_neg)
+    plt.axhline(y=overall_average)
     return threshold_pos, threshold_neg, overall_average
 
 def getThresholdAvg(scaled_filtered_img, threshold):
@@ -512,7 +493,7 @@ def getMinMaxAvgOfImage(scaled_filtered_img):
                 maximum = scaled_filtered_img[y,x]
     avg = avg / (scaled_filtered_img.shape[0] * scaled_filtered_img.shape[1])
     return minimum, maximum, avg
-    
+
 def getThresholdNonMaximum(scaled_filtered_img, threshold):
     values = []
     for y in range(0, scaled_filtered_img.shape[0] - 1):
@@ -538,7 +519,7 @@ def calcHessian(scaled_filtered_img):
             y_1 = int(y + v[0])
             x_1 = int(x + v[1])
             cv2.arrowedLine(scaled_filtered_img, (y,x), (y_1, x_1), (0,0,255), 1)
-            
+
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
     return vector / np.linalg.norm(vector)
@@ -559,31 +540,31 @@ def angle_between(v1, v2):
 
 def avgLineHeight(img):
     img_row_sum = np.sum(img,axis=1).tolist()
-        
-    # plt.plot(img_row_sum)
-    # plt.show()
-    
+
+    plt.plot(img_row_sum)
+    plt.show()
+
     gradients = [];
     for i in range(len(img_row_sum) - 1):
         gradients.append(np.abs(img_row_sum[i+1] - img_row_sum[i]))
-    
-    # plt.plot(gradients)
-    # plt.show()
-    
+
+    plt.plot(gradients)
+    plt.show()
+
     abs_max = max(gradients)
     print("Highest value: " + str(abs_max))
-    
+
     max_vals = [];
     for j in range(len(gradients) - 1):
         if (gradients[j] > gradients[j+1]):
             if (gradients[j] > (abs_max / 2)):
                 max_vals.append(j)
-            
+
     summe = 0
     print("Anzahl Max Values: " + str(len(max_vals)))
     for i in range(0, len(max_vals) - 1, 2):
         summe = summe + (max_vals[i + 1] - max_vals[i])
-    
+
     avg = summe * 2 / len(max_vals)
     print("Durchschnitt: " + str(avg))
     #avg = 10
@@ -616,25 +597,35 @@ def findLineComponents(lineImage, secondOrder, topAndBase, theta, scale, path, e
     labels = output[1]
     # The third cell is the stat matrix
     stats = output[2]
-    
-    # DEBUGGING: Writing connected components
-    # labeled_img = np.zeros((lineImage.shape[0], lineImage.shape[1], 3), np.uint8)
-    # for y in range(0, labels.shape[0]):
-    #     for x in range(0, labels.shape[1]):
-    #         if (labels[y,x] == 0):
-    #             continue
-    #         if (labels[y,x] % 3 == 0):
-    #             labeled_img[y,x] = (255, 0, 0)
-    #         elif (labels[y,x] % 3 == 1):
-    #             labeled_img[y,x] = (0, 0, 255)
-    #         else:
-    #             labeled_img[y,x] = (0, 255, 0)
-    
-    # if (shouldBeTmpImagesWritten):
-    #     cv2.imwrite(path + "_Components.png", labeled_img)
-    
+    # The fourth cell is the centroid matrix
+    #centroids = output[3]
+    # Map component labels to hue val
+#    label_hue = np.uint8(179*labels/np.max(labels))
+#    blank_ch = 255*np.ones_like(label_hue)
+#    labeled_img = cv2.merge([label_hue, blank_ch, blank_ch])
+
+    # cvt to BGR for display
+#    labeled_img = cv2.cvtColor(labeled_img, cv2.COLOR_HSV2BGR)
+
+    # set bg label to black
+#    labeled_img[label_hue==0] = 0
+    labeled_img = np.zeros((lineImage.shape[0], lineImage.shape[1], 3), np.uint8)
+    for y in range(0, labels.shape[0]):
+        for x in range(0, labels.shape[1]):
+            if (labels[y,x] == 0):
+                continue
+            if (labels[y,x] % 3 == 0):
+                labeled_img[y,x] = (255, 0, 0)
+            elif (labels[y,x] % 3 == 1):
+                labeled_img[y,x] = (0, 0, 255)
+            else:
+                labeled_img[y,x] = (0, 255, 0)
+
+    if (shouldBeTmpImagesWritten):
+        cv2.imwrite(path + "_Components.png", labeled_img)
+
     components = dict()
-    
+
     if num_labels == 0:
         print("No connected componentes found.")
         return components
@@ -666,15 +657,15 @@ def findLineComponents(lineImage, secondOrder, topAndBase, theta, scale, path, e
                 components[labels[y,x]] = line
             else:
                 components[labels[y,x]].addPixel(x,y)
-    
+
     tmp = np.zeros((lineImage.shape[0], lineImage.shape[1], 3), np.uint8)
     for label, line in components.items():
         for p in line.pixels:
             tmp[p.row, p.col] = (255, 0, 0) if line.lineType == LineType.TOP_LINE or line.lineType == LineType.MID_LINE else (0, 0, 255)
-    
+
     if (shouldBeTmpImagesWritten):
         cv2.imwrite(path + "_removedSmall.png", tmp)
-        
+
     #Complete Lines
     toBeRemoved = []
     for label, line in components.items():
@@ -684,60 +675,51 @@ def findLineComponents(lineImage, secondOrder, topAndBase, theta, scale, path, e
         vector = line.direction_vector if not endings else line.norm_vector
         vector = (vector[0], vector[1] * -1) # Since coordinate system is inverted
         angle = angle_between(vector, (0, 1)) / np.pi
-        # print("Label: " + str(label))
-        # print("Angle: " + str(angle) + "; Vector: " + str(vector) + "; Dif: " + str(np.abs(angle - theta) % 1))
+#        print("Label: " + str(label))
+#        print("Angle: " + str(angle) + "; Vector: " + str(vector) + "; Dif: " + str(np.abs(angle - theta) % 1))
         if (np.abs(angle - theta % 1) > 0.035):
 #        if (np.abs(angle - theta) % 1 > 0.1):
 #            print("... removed")
             toBeRemoved.append(label)
     for label in toBeRemoved:
         del components[label]
-    
+
     tmp = np.zeros(lineImage.shape, np.uint8)
     for label, line in components.items():
         for p in line.pixels:
             tmp[p.row, p.col] = 255
-    
+
     if (shouldBeTmpImagesWritten):
         cv2.imwrite(path + "_removedWrongAngle.png", tmp)
-    
-    # TODO remove!!!
-    if (not shouldBeTmpImagesWritten):
-        return components
+
     print("... Lines Completed. Merging " + str(len(components.items())) + " Lines...")
-    if (len(components.items()) > 500):
-        return components
     toBeRemoved = []
     distance = []
     added = []
     addedImg = np.zeros(lineImage.shape, np.uint8)
     parameters = []
-    
+
     for label, line in components.items():
 #        print(str(label) + " of " +  str(len(components)))
         for label_2, line_2 in components.items():
             idx = (label, label_2) if (label < label_2) else (label_2, label)
-            if label == label_2 or idx in distance or line.distance(line_2, theta) > scale * 1:
+            if label == label_2 or idx in distance or line.distance(line_2, theta) > scale * 3:
                 continue
             distance.append(idx)
             parameters.append((label, line, label_2, line_2, scale, theta))
-            
+
     print("Start Merging... " + str(len(parameters)))
-    
-    if (len(parameters) > len(components.items()) * 2):
-        print("too many parameters.")
-        return components
 #    n = 300
     res = []
 #    for chunk in [parameters[i:i + n] for i in range(0, len(parameters), n)]:
 #        print("Chunk " + str(len(chunk)))
 #        pool = Pool(4)
 #        res.extend(pool.map(mergeHelper, chunk))
-#        # Ok parameter liste ist nicht das Problem. 
+#        # Ok parameter liste ist nicht das Problem.
 #        pool.close()
 #        pool.join()
 #        pool.terminate()
-    
+
 #    if (len(parameters) <= 200):
 #        pool = Pool(4)
 #        res = pool.map(mergeHelper, parameters)
@@ -745,10 +727,10 @@ def findLineComponents(lineImage, secondOrder, topAndBase, theta, scale, path, e
     mergeMap = dict()
     for p in parameters:
         res.append(mergeHelper(p, mergeMap))
-    
+
 #    for label, line in components.items():
 #        calcHoughLines(line, lineImage, path, out)
-        
+
     print("... Lines Merged")
     for added, toBeRemoved, dis in res:
         for p in added:
@@ -760,12 +742,12 @@ def findLineComponents(lineImage, secondOrder, topAndBase, theta, scale, path, e
         for l in toBeRemoved:
             if (l in components):
                 del components[l]
-    
+
     tmp = np.zeros((lineImage.shape[0], lineImage.shape[1], 3), np.uint8)
     for label, line in components.items():
         for p in line.pixels:
             tmp[p.row, p.col] = (255, 0, 0) if line.lineType == LineType.TOP_LINE or line.lineType == LineType.MID_LINE else (0, 0, 255)
-    
+
     if (shouldBeTmpImagesWritten):
         cv2.imwrite(path + "_removedMerged.png", tmp)
         cv2.imwrite(path + "_added.png", addedImg)
@@ -777,7 +759,7 @@ def calcHoughLines(line, orig_img, path, out):
     for l in line.pixels:
         img[l.row, l.col] = 1
     houghLines = cv2.HoughLinesP(img, 1, np.pi / 180, 120, None, 1, orig_img.shape[1])
-    
+
     if houghLines is not None:
         for i in range(0, len(houghLines)):
             l = houghLines[i][0]
@@ -817,127 +799,32 @@ def mergeLines(label, line, label_2, line_2, scale, theta, mergeMap):
         toBeRemoved.append(label_2)
     return added, toBeRemoved, 0
 
-def opt_size(size):
-    '''Maximize number of windows, minimize loss at the edge
+def thresholding(scaled_filtered_img):
+    stepSize = int(scaled_filtered_img.shape[0] / 10)
+    window_size = int(scaled_filtered_img.shape[0] / 10)
+    window_shape = (window_size, window_size)
+    for y in range(0, scaled_filtered_img.shape[0], stepSize):
+        for x in range(0, scaled_filtered_img.shape[1], stepSize):
+            window = scaled_filtered_img[y:y + window_shape[1], x:x + window_shape[0]]
+            threshold_pos, threshold_neg, avg = getThresholdMaxMinReduction(window, 0.6)
+#                    print("Average of response map: ", avg)
+#                    print("Positiv threshold of response map: ", threshold_pos)
+#                    print("Negativ threshold of response map: ", threshold_neg)
 
-    size -> int
-       Number of "windows" constrained to 4-10
-       Returns (int,int,int)
-           size in pixels,
-           loss in pixels,
-           number of windows
-    '''
+#                    sliceImage(scaled_filtered_img)
 
-    size = [(divmod(size,n),n) for n in range(4,11)]
-    # size = [(divmod(size,n),n) for n in range(1,3)]
-    n_windows = 0
-    remainder = 99
-    patch_size = 0
-    for ((p,r),n) in size:
-        if r <= remainder and n > n_windows:
-            remainder = r
-            n_windows = n
-            patch_size = p
-    return patch_size, remainder, n_windows
-
-def thresholding(img):
-    
-    # original_shape = img.shape
-    #global values
-    # threshold_pos, threshold_neg, avg = getThresholdMaxMinReduction(img, 0.8)
-    # img[np.logical_and(img > threshold_neg, img < threshold_pos)] = avg
-
-    # determine patch shape 
-    hsize, h_remainder, h_windows = opt_size(img.shape[0])
-    print("Vertical windows: " + str(h_windows))
-    wsize, w_remainder, w_windows = opt_size(img.shape[1])
-    print("Horizontal windows: " + str(w_windows))
-    
-    patch_shape = (hsize,wsize)
-    
-    patches = image._extract_patches(img,patch_shape=patch_shape,
-                                     extraction_step=patch_shape)
-    #squeeze??
-    patches = patches.squeeze()
-    
-    lower = patches.min((2,3)) * 0.4
-    lower = lower[...,:,None,None]
-    upper = patches.max((2,3)) * 0.4
-    upper = upper[...,:,None,None]
-    indices = np.logical_and(patches > lower, patches < upper).nonzero()
-    
-    avg = patches.mean((2,3))
-##    del lower, upper, mask
-    patches[indices] = avg[indices[0],indices[1]]
-    
-    # for y in range(0, scaled_filtered_img.shape[0], stepSize):
-    #     for x in range(0, scaled_filtered_img.shape[1], stepSize):
-    #         window = scaled_filtered_img[y:y + window_shape[1], x:x + window_shape[0]]
-#            threshold_pos, threshold_neg, avg = getThresholdMaxMinReduction(window, 0.6)
-##                    print("Average of response map: ", avg)
-##                    print("Positiv threshold of response map: ", threshold_pos)
-##                    print("Negativ threshold of response map: ", threshold_neg)
-#            
-##                    sliceImage(scaled_filtered_img)
-#            
-#            for y_2 in range(0, window.shape[0]):
-#                for x_2 in range(0, window.shape[1]):
-#                    tmp = scaled_filtered_img[y + y_2, x + x_2]
-#                    scaled_filtered_img[y + y_2, x + x_2] = tmp if ((tmp >= threshold_pos or tmp <= threshold_neg) and np.abs(tmp) > 5 ) else avg
-    
-    return img
-
-# def thresholdThread(window, y, x, scaled_filtered_img):
-#     window_size = int(_SHARED_IMAGE.shape[0] / 10)
-#     window_shape = (window_size, window_size)
-#     window = _SHARED_IMAGE[y:y + window_shape[1], x:x + window_shape[0]]
-#     threshold_pos, threshold_neg, avg = getThresholdMaxMinReduction(window, 0.6)
-#     print("(" + str(x) +", " + str(y) +"): Average of response map: ", avg)
-#     print("(" + str(x) +", " + str(y) +"): Positiv threshold of response map: ", threshold_pos)
-#     print("(" + str(x) +", " + str(y) +"): Negativ threshold of response map: ", threshold_neg)
-    
-# #                    sliceImage(scaled_filtered_img)
-    
-#     for y_2 in range(0, window.shape[0]):
-#         for x_2 in range(0, window.shape[1]):
-#             tmp = _SHARED_IMAGE[y + y_2, x + x_2]
-#             _SHARED_IMAGE[y + y_2, x + x_2] = tmp if ((tmp >= threshold_pos or tmp <= threshold_neg) and np.abs(tmp) > 5 ) else avg
-#     return str(avg)
-    
-
-class SobelThread(threading.Thread):
-    def __init__(self, img, isX):
-        threading.Thread.__init__(self)
-        self.img = img
-        self.isX = isX
-        self.result = img
-    def run(self):
-        if (self.isX):
-            self.result = cv2.Sobel(self.img, cv2.CV_32F, 1, 0, 1)
-        else:
-            self.result = cv2.Sobel(self.img, cv2.CV_32F, 0, 1, 1)
-        
+            for y_2 in range(0, window.shape[0]):
+                for x_2 in range(0, window.shape[1]):
+                    tmp = scaled_filtered_img[y + y_2, x + x_2]
+                    scaled_filtered_img[y + y_2, x + x_2] = tmp if ((tmp >= threshold_pos or tmp <= threshold_neg) and np.abs(tmp) > 5 ) else avg
+    return scaled_filtered_img
 
 def getZeroCrossings(scaled_filtered_img, filePath, shouldWriteImage = True):
-    with ProcessPoolExecutor(max_workers=2) as e:
-        fx = e.submit(cv2.Sobel, scaled_filtered_img, cv2.CV_32F, 1, 0, 1)
-        fy = e.submit(cv2.Sobel, scaled_filtered_img, cv2.CV_32F, 0, 1, 1)
-        
-    dx = fx.result()
-    dy = fy.result()
-#    dx = cv2.Sobel(scaled_filtered_img, cv2.CV_32F, 1, 0, 1)
-#    dy = cv2.Sobel(scaled_filtered_img, cv2.CV_32F, 0, 1, 1)
-#    xThread = SobelThread(scaled_filtered_img, True)
-#    yThread = SobelThread(scaled_filtered_img, False)
-#    xThread.start()
-#    yThread.start()
-#    xThread.join()
-#    yThread.join()
-#    dx = xThread.result
-#    dy = yThread.result
+    dx = cv2.Sobel(scaled_filtered_img, cv2.CV_32F, 1, 0, 1)
+    dy = cv2.Sobel(scaled_filtered_img, cv2.CV_32F, 0, 1, 1)
     if (shouldWriteImage):
-        sliceImage(dx, "dx")
-        sliceImage(dy, "dy")
+        sliceImage(dx)
+        sliceImage(dy)
     energy_x = 0.0
     energy_y = 0.0
     for y in range(0, scaled_filtered_img.shape[0] - 1):
@@ -957,7 +844,7 @@ def getZeroCrossings(scaled_filtered_img, filePath, shouldWriteImage = True):
         tmp = cv2.convertScaleAbs(dy, alpha=255/m)
         if (shouldWriteImage):
             cv2.imwrite(filePath + "_dy.png", tmp)
-    
+
     ## Finding zero crossings in x-direction
     marked_Pixels = []
     for y in range(0, scaled_filtered_img.shape[0] - 1):
@@ -978,38 +865,51 @@ def getZeroCrossings(scaled_filtered_img, filePath, shouldWriteImage = True):
                         marked_Pixels.append((y,x))
     return marked_Pixels
 
-def findTopAndBaseLines(img, scale, theta, postProcess):
-    return findLines(img, scale, 0.5, theta, postProcess)
+def skeletonize(img):
+    """ OpenCV function to return a skeletonized version of img, a Mat object"""
 
-def findMidAndInterLines(img, scale, theta, postProcess):
-    return findLines(img, scale, 1.0, theta, postProcess)
+    #  hat tip to http://felix.abecassis.me/2011/09/opencv-morphological-skeleton/
 
-def findAndDrawTopBaseLines(img, scale, theta, postProcess):
-    if (not postProcess):
-        return findLines(img, scale, 0.5, theta, postProcess)
-    else:
-        return drawDetectedLines(img, findLines(img, scale, 0.5, theta, postProcess))
+    img = img.copy() # don't clobber original
+    skel = img.copy()
 
-def findAndDrawMidInterLines(img, scale, theta, postProcess):
-    if (not postProcess):
-        return findLines(img, scale, 1.0, theta, postProcess)
-    else:
-        return drawDetectedLines(img, findLines(img, scale, 1.0, theta, postProcess))
+    skel[:,:] = 0
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3))
+
+    while True:
+        eroded = cv2.morphologyEx(img, cv2.MORPH_ERODE, kernel)
+        temp = cv2.morphologyEx(eroded, cv2.MORPH_DILATE, kernel)
+        temp  = cv2.subtract(img, temp)
+        skel = cv2.bitwise_or(skel, temp)
+        img[:,:] = eroded[:,:]
+        if cv2.countNonZero(img) == 0:
+            break
+
+    return skel
+
+def findTopAndBaseLines(img, scale, theta):
+    return findLines(img, scale, 0.5, theta)
+
+def findMidAndInterLines(img, scale, theta):
+    return findLines(img, scale, 1.0, theta)
+
+def findAndDrawTopBaseLines(img, scale, theta):
+    return drawDetectedLines(img, findLines(img, scale, 0.5, theta))
+
+def findAndDrawMidInterLines(img, scale, theta):
+    return drawDetectedLines(img, findLines(img, scale, 1.0, theta))
 
 def findAndDrawAllLines(img, scale, theta):
-    tmp = findTopAndBaseLines(img, scale, theta, True)
-    tmp2 = findMidAndInterLines(img, scale, theta, True)
+    tmp = findTopAndBaseLines(img, scale, theta)
+    tmp2 = findMidAndInterLines(img, scale, theta)
     tmp = {**tmp, **tmp2}
     return drawDetectedLines(img, tmp)
 
-def convoveGablet(img, scale, psi, theta, otsu):
+def convoveGablet(img, scale, psi, theta):
     img = 255-img
-    if (otsu):
-        ret2,th2 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        blur = th2
-    else:
-        blur = img
-    
+    ret2,th2 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    blur = th2
+
     return filterGabor(blur, scale, psi, theta, "", False)
 
 def convertResponseMap(responseMap):
@@ -1017,35 +917,27 @@ def convertResponseMap(responseMap):
     tmp = cv2.convertScaleAbs(responseMap, alpha=255/m)
     return tmp
 
-def findLines(img, scale, psi, theta, postProcess):
-    print("Start convolving with Gablet...")
-    scaled_filtered_img = convoveGablet(img, scale, psi, theta, True)
-    print("... finished convolving with Gablet.")
-    
+def findLines(img, scale, psi, theta):
+
+    scaled_filtered_img = convoveGablet(img, scale, psi, theta)
+
     #Second Order Derivitiv before Thresholding
-    print("Calculating Laplacian...")
     secondOrderDerivitiv = cv2.Laplacian(scaled_filtered_img, cv2.CV_32F)
-    print("... finished with Laplacian")
-    
+
     ## Thresholding
     ## In case of syntetic image, thresholding makes it worse
-    print("Thresholding...")
     scaled_filtered_img = thresholding(scaled_filtered_img)
-    print("... finished thresholding")
-    
+
     ## Find Pixels that are the line (zero crossings)
-    print("Calculating zero crossings")
     marked_Pixels = getZeroCrossings(scaled_filtered_img, "", False)
-    print("... finished calculating zero crossings.")
-            
+
     lines = np.zeros(scaled_filtered_img.shape, np.uint8)
     for m in marked_Pixels:
         lines[m[0], m[1]] = 255
-    
-    if (postProcess):
-        return findLineComponents(lines, secondOrderDerivitiv, psi == 0.5, theta, scale, "", False, False)
-    else:
-        return lines
+
+
+    components = findLineComponents(lines, secondOrderDerivitiv, psi == 0.5, theta, scale, "", False, False)
+    return components
 
 def drawDetectedLines(img, lines):
     print("Components found. Now writing lines to original image...")
@@ -1053,26 +945,20 @@ def drawDetectedLines(img, lines):
     for label, line in lines.items():
         for p in line.pixels:
             backtorgb[p.row, p.col] = (255, 0, 0) if line.lineType == LineType.TOP_LINE or line.lineType == LineType.MID_LINE else (0, 0, 255)
-    
+
     return backtorgb
 
-"""
-#folder_str = "/home/gares/Dokumente/MasterThesis/Manuskript Images/Heidelberg/"
-folder_str = "/home/gares/Dokumente/MasterThesis/workingImage/"
-folder_results = "/home/gares/Dokumente/MasterThesis/Manuskript Results WithoutMerging/"
-#folder_results = "/home/gares/Dokumente/MasterThesis/resultsSyntetic/"
-# folder_results = "/home/gares/Dokumente/MasterThesis/OrientationResults/"
+'''
+folder_str = "/home/gares/Dokumente/MasterThesis/Manuskript Images/"
+#folder_str = "/home/gares/Dokumente/MasterThesis/Syntetic Images/"
+folder_results = "/home/gares/Dokumente/MasterThesis/results/"
 #imageName = "LeipzigTestImage.png"
 #imageName = "LeipzigTestImageCutout.png"
 #imageName = "LeipzigTestImageLineBlock.png"
 #imageName = "LeipzigTestImageLineDiag.png"
-imageName = "Test_Sample_U_Heidelberg.jpg"
-#imageName = "ICDAR_2019_Plutarchus_Vitae_illustrium_virorum_Plutarchus_(0046_-0120_)_btv1b8446958b_193.jpeg"
+#imageName = "Test_Sample_U_Heidelberg.jpg"
+imageName = "ICDAR_2019_Plutarchus_Vitae_illustrium_virorum_Plutarchus_(0046_-0120_)_btv1b8446958b_193.jpeg"
 #imageName = "NanYuanChun.png"
-#imageName = "Zimmermann_Wilhelm_M_28178_r.png"
-#imageName = "Zimmermann_Wilhelm_M_28178_v.png"
-#imageName = "Zincke_Emil_M_2253_r.png"
-#imageName = "Zincke_Emil_M_2253_v.png"
 #imageName = "linesCurved_step_46_background_130_foreground_120_0.00015.png"
 #imageName = "linesCurved_step_46_background_130_foreground_120_0.00025.png"
 #imageName = "linesCurved_step_46_background_130_foreground_120_0.00035.png"
@@ -1085,182 +971,148 @@ imageName = "Test_Sample_U_Heidelberg.jpg"
 #imageName = "linesCurved_step_46_background_255_foreground_0_0.00015.png"
 #imageName = "linesCurved_step_46_background_255_foreground_0_0.00025.png"
 #imageName = "linesCurved_step_46_background_255_foreground_0_0.00035.png"
+imageAsStr = folder_str + imageName
 #lineImage = cv2.cvtColor(lineImage, cv2.COLOR_BGR2GRAY)
 
-# scales = range(15, 31, 4)
-# scales = range(15, 23, 2)
-# scales = range(23, 30, 2)
-scales = [17]
-# shifts = [0.5, 1.0]
-shifts = [0]
-# thetas = [0.75, 1.25]
-# thetas = [0.5, 0.75, 1.25, 1.3, 1.35, 1.4]
-thetas = [0.5]
-(_, _, filenames) = next(os.walk(folder_str))
-# signals = dict()
+scales = range(11, 30, 2)
+#scales = [23]
+shifts = [0.5, 1.0]
+#shifts = [1.0]
+thetas = [0.5, 0.75, 1.0, 1.25]
+#thetas = [0.5]
+for scale in scales:
+    for theta in thetas:
+        allComponents = dict()
+        lineImage = cv2.imread(imageAsStr, cv2.CV_8UC1)
+        #rows, cols = lineImage.shape
+        #M = cv2.getRotationMatrix2D((cols/2, rows/2), 90, 1)
+        #lineImage = cv2.warpAffine(lineImage, M, (cols, rows))
+        img = 255-lineImage
 
-for imageName in filenames:
-    if (not imageName.endswith(".png") and not imageName.endswith(".tif") and not imageName.endswith(".jpeg") and not imageName.endswith(".jpg")):
-        continue
-    for scale in scales:
-        for theta in thetas:
-            allComponents = dict()
-            imageAsStr = folder_str + imageName
-            lineImage = cv2.imread(imageAsStr, cv2.CV_8UC1)
-            print("Opened: " + imageAsStr)
-            noiseLabel = imageName[10:-4]
-            #rows, cols = lineImage.shape
-            #M = cv2.getRotationMatrix2D((cols/2, rows/2), 90, 1)
-            #lineImage = cv2.warpAffine(lineImage, M, (cols, rows))
-            img = 255-lineImage
-            
-            #blur = blurImage(img, avg)
-            ret2,th2 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-            blur = th2
-            # blur = img
-            sliceImage(blur, "original")
-            
-            # lineEndings = findLineEndings(blur, scale, theta)
-            # sod_LineEnding = cv2.Laplacian(lineEndings, cv2.CV_32F)
-            # filteredLineEnding = thresholding(lineEndings)
-            # marked_Pixels_endLines = getZeroCrossings(filteredLineEnding, "")
-            foundEndings = np.zeros(lineImage.shape, np.uint8)
-            # for m in marked_Pixels_endLines:
-            #     foundEndings[m[0], m[1]] = 255
-        
-            for psi in shifts:
-                print("################# Scale: " + str(scale) + " ##### Theta: " + str(theta) + " ##### Shift: " + str(psi))
-                targetName = ""
-                if (psi == 0.5):
-                    targetName = "Top_And_Base"
-                else:
-                    targetName = "Mid_And_Inter"
-                
-                folderPath = folder_results + "/" + imageName + "/" + targetName + "/" + "Theta" + str(theta) + "/" + str(scale) + "/"
-                os.makedirs(name=folderPath , exist_ok=True)
-                
-                scaled_filtered_img = filterGabor(blur, scale, psi, theta, folderPath, False)
-                
-                print("Plotting Reponse Slice")
-                sliceImage(scaled_filtered_img, "response map")
-                #continue
-            
-                print("Finished Plotting Response Slice.")
-                m = np.max(scaled_filtered_img)
-                tmp = cv2.convertScaleAbs(scaled_filtered_img, alpha=255/m)
-                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_responsMap.png", tmp)
-                response_map = scaled_filtered_img.copy()
-                #calcHessian(scaled_filtered_img)
-                
-                #cv2.imwrite(folder_results + "result_" + imageName + "_" + targetName + "_scale" + str(scale) + "_responseMap.png", scaled_filtered_img)
-                #print(scaled_filtered_img)
-                
-                #Second Order Derivitiv before Thresholding
-                secondOrderDerivitiv = cv2.Laplacian(scaled_filtered_img, cv2.CV_32F)
-                
-                ## Thresholding
-                ## In case of syntetic image, thresholding makes it worse
-                # if (not imageName.startswith("lines")):
-                scaled_filtered_img = thresholding(scaled_filtered_img)
-    #            print("Plotting Threshold Slice")
-    #            sliceImage(scaled_filtered_img)
-    #            print("Finished Plotting Threshold Slice.")
-                m = np.max(scaled_filtered_img)
-                tmp = cv2.convertScaleAbs(scaled_filtered_img, alpha=255/m)
-                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_threshold.png", tmp)
-                
-                #threshold_pos, threshold_neg, avg = getThresholdNonMaximum(scaled_filtered_img, 20)
-    #            threshold_pos, threshold_neg, avg = getThreshold(scaled_filtered_img)
-    #            for y in range(0, scaled_filtered_img.shape[0] - 1):
-    #                for x in range(0, scaled_filtered_img.shape[1] - 1):
-    #                    tmp = scaled_filtered_img[y, x]
-    #                    scaled_filtered_img[y, x] = tmp if (tmp >= threshold_pos or tmp <= threshold_neg) else 0
-                
-                # Find Zero Crossings
-                marked_Pixels = getZeroCrossings(scaled_filtered_img, folderPath + imageName + "_scale" + str(scale))
-                
-                
-                print("Marked pixels as line: " + str(len(marked_Pixels)))
-                # if (len(marked_Pixels) > 200000):
-                #     print("Too many pixels.")
-                #     continue
-                #sliceImage(scaled_filtered_img)
-                
-                lines = np.zeros(scaled_filtered_img.shape, np.uint8)
-                allFoundings = np.zeros(scaled_filtered_img.shape, np.uint8)
-                lines_values = []
-                for m in marked_Pixels:
-    #                lineImage[m[0], m[1]] = 0
-    #                blur[m[0], m[1]] = 255
-                    lines[m[0], m[1]] = 255
-    #                allFoundings[m[0], m[1]] = 255
-                    lines_values.append(response_map[m[0], m[1]])
-                
-                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Lines.png", lines)
-                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Endings.png", foundEndings)
-                
-                # if (not imageName.startwith("lines")):
-                components = findLineComponents(lines, secondOrderDerivitiv, targetName, theta, scale, folderPath + imageName + "_scale" + str(scale), False, False)
-                
-                allComponents = {**allComponents, **components}
-            
-                print("Writing results...")
-                # components_Of_Endings = findLineComponents(foundEndings, sod_LineEnding, "Endings", theta, scale, folderPath + imageName + "_scale" + str(scale), True, True)
-                
-                print("Components found. Now writing lines to original image...")
-                backtorgb = cv2.cvtColor(lineImage, cv2.COLOR_GRAY2RGB)
-                
-                fixed_lines = np.zeros(scaled_filtered_img.shape, np.uint8)
-                fixed_lineEndings = np.zeros(scaled_filtered_img.shape, np.uint8)
-                for label, line in components.items():
-                    for p in line.pixels:
-                        allFoundings[p.row, p.col] = 255
-                        fixed_lines[p.row, p.col] = 255
-                        backtorgb[p.row, p.col] = (255, 0, 0) if line.lineType == LineType.TOP_LINE or line.lineType == LineType.MID_LINE else (0, 0, 255)
-                        
-                # for label, line in components_Of_Endings.items():
-                #     for p in line.pixels:
-                #         allFoundings[p.row, p.col] = 255
-                #         fixed_lineEndings[p.row, p.col] = 255
-                        #backtorgb[p.row, p.col] = (255, 0, 0) if line.lineType == LineType.TOP_LINE or line.lineType == LineType.MID_LINE else (0, 0, 255)
-        #            for windowImage in components:
-        #                ((upper_most, left_most), (lower_most,right_most)) = components[windowImage]
-        #                crop_orig_img = lineImage[upper_most:lower_most, left_most:right_most]
-        #                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_compIdx_" + str(windowImage) + "result.png", crop_orig_img)
-                #cv2.imshow("Filtered Lines", lines)
-                #cv2.imshow("Lines", lineImage)
-                #cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_result.png", lineImage)
-                
-                os.makedirs(name=folderPath , exist_ok=True)
-                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_result.png", backtorgb)
-                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Lines_fixed.png", fixed_lines)
-                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Endings_fixed.png", fixed_lineEndings)
-            # folderPath = folder_results + "/" + imageName + "/Combined/" + "Theta" + str(theta) + "/"
-            # cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_All.png", allFoundings)
-            #cv2.imshow("Blurred with Lines", blur)
-            
-            #sliceImage(blur)
-            
-    #            plt.axhline(y=threshold_pos)
-    #            plt.axhline(y=threshold_neg)
-    #            plt.axhline(y=avg)
-    #            print("Response map and derivetive of it:")
-            plt.show()
+        #blur = blurImage(img, avg)
+        ret2,th2 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        blur = th2
 
-## Noise-to-signal ration
-# ground = signals.pop("0.0")
-# for l in signals:
-#     print("===== " + l + " =====")
-#     noise = signals[l]
-#     n = min(len(ground), len(noise))
-#     mse = 0
-#     for i in range(0, n):
-#         mse = mse + math.pow(ground[i] - noise[i], 2)
-#     mse = mse / n
-#     print("Square root mean: " + str(mse))
-#     psnr = 10 * np.log10(math.pow(255,2) / mse)
-#     print("PSNR: " + str(psnr))
+        lineEndings = findLineEndings(blur, scale, theta)
+        sod_LineEnding = cv2.Laplacian(lineEndings, cv2.CV_32F)
+        filteredLineEnding = thresholding(lineEndings)
+        marked_Pixels_endLines = getZeroCrossings(filteredLineEnding, "")
+        foundEndings = np.zeros(lineImage.shape, np.uint8)
+        for m in marked_Pixels_endLines:
+            foundEndings[m[0], m[1]] = 255
+
+        for psi in shifts:
+            print("################# Scale: " + str(scale) + " ##### Theta: " + str(theta) + " ##### Shift: " + str(psi))
+            targetName = ""
+            if (psi == 0.5):
+                targetName = "Top_And_Base"
+            else:
+                targetName = "Mid_And_Inter"
+
+            folderPath = folder_results + "/" + imageName + "/" + targetName + "/" + "Theta" + str(theta) + "/"
+            os.makedirs(name=folderPath , exist_ok=True)
+
+            scaled_filtered_img = filterGabor(blur, scale, psi, theta, folderPath, True)
+            print("Plotting Reponse Slice")
+            sliceImage(scaled_filtered_img)
+            print("Finished Plotting Response Slice.")
+            m = np.max(scaled_filtered_img)
+            tmp = cv2.convertScaleAbs(scaled_filtered_img, alpha=255/m)
+            cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_responsMap.png", tmp)
+            response_map = scaled_filtered_img.copy()
+            #calcHessian(scaled_filtered_img)
+
+            #cv2.imwrite(folder_results + "result_" + imageName + "_" + targetName + "_scale" + str(scale) + "_responseMap.png", scaled_filtered_img)
+            #print(scaled_filtered_img)
+
+            #Second Order Derivitiv before Thresholding
+            secondOrderDerivitiv = cv2.Laplacian(scaled_filtered_img, cv2.CV_32F)
+
+            ## Thresholding
+            ## In case of syntetic image, thresholding makes it worse
+            scaled_filtered_img = thresholding(scaled_filtered_img)
+#            print("Plotting Threshold Slice")
+#            sliceImage(scaled_filtered_img)
+#            print("Finished Plotting Threshold Slice.")
+            m = np.max(scaled_filtered_img)
+            tmp = cv2.convertScaleAbs(scaled_filtered_img, alpha=255/m)
+            cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_threshold.png", tmp)
+
+            #threshold_pos, threshold_neg, avg = getThresholdNonMaximum(scaled_filtered_img, 20)
+#            threshold_pos, threshold_neg, avg = getThreshold(scaled_filtered_img)
+#            for y in range(0, scaled_filtered_img.shape[0] - 1):
+#                for x in range(0, scaled_filtered_img.shape[1] - 1):
+#                    tmp = scaled_filtered_img[y, x]
+#                    scaled_filtered_img[y, x] = tmp if (tmp >= threshold_pos or tmp <= threshold_neg) else 0
+
+            # Find Zero Crossings
+            marked_Pixels = getZeroCrossings(scaled_filtered_img, folderPath + imageName + "_scale" + str(scale))
+
+
+            print("Marked pixels as line: " + str(len(marked_Pixels)))
+            #sliceImage(scaled_filtered_img)
+
+            lines = np.zeros(scaled_filtered_img.shape, np.uint8)
+            allFoundings = np.zeros(scaled_filtered_img.shape, np.uint8)
+            lines_values = []
+            for m in marked_Pixels:
+#                lineImage[m[0], m[1]] = 0
+#                blur[m[0], m[1]] = 255
+                lines[m[0], m[1]] = 255
+#                allFoundings[m[0], m[1]] = 255
+                lines_values.append(response_map[m[0], m[1]])
+
+            cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Lines.png", lines)
+            cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Endings.png", foundEndings)
+
+            components = findLineComponents(lines, secondOrderDerivitiv, targetName, theta, scale, folderPath + imageName + "_scale" + str(scale), False, True)
+
+            allComponents = {**allComponents, **components}
+
+            print("Writing results...")
+            components_Of_Endings = findLineComponents(foundEndings, sod_LineEnding, "Endings", theta, scale, folderPath + imageName + "_scale" + str(scale), True, True)
+
+            print("Components found. Now writing lines to original image...")
+            backtorgb = cv2.cvtColor(lineImage, cv2.COLOR_GRAY2RGB)
+
+            fixed_lines = np.zeros(scaled_filtered_img.shape, np.uint8)
+            fixed_lineEndings = np.zeros(scaled_filtered_img.shape, np.uint8)
+            for label, line in components.items():
+                for p in line.pixels:
+                    allFoundings[p.row, p.col] = 255
+                    fixed_lines[p.row, p.col] = 255
+                    backtorgb[p.row, p.col] = (255, 0, 0) if line.lineType == LineType.TOP_LINE or line.lineType == LineType.MID_LINE else (0, 0, 255)
+
+            for label, line in components_Of_Endings.items():
+                for p in line.pixels:
+                    allFoundings[p.row, p.col] = 255
+                    fixed_lineEndings[p.row, p.col] = 255
+                    backtorgb[p.row, p.col] = (255, 0, 0) if line.lineType == LineType.TOP_LINE or line.lineType == LineType.MID_LINE else (0, 0, 255)
+    #            for windowImage in components:
+    #                ((upper_most, left_most), (lower_most,right_most)) = components[windowImage]
+    #                crop_orig_img = lineImage[upper_most:lower_most, left_most:right_most]
+    #                cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_compIdx_" + str(windowImage) + "result.png", crop_orig_img)
+            #cv2.imshow("Filtered Lines", lines)
+            #cv2.imshow("Lines", lineImage)
+            #cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_result.png", lineImage)
+            os.makedirs(name=folderPath , exist_ok=True)
+            cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_result.png", backtorgb)
+            cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Lines_fixed.png", fixed_lines)
+            cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_Endings_fixed.png", fixed_lineEndings)
+        folderPath = folder_results + "/" + imageName + "/Combined/" + "Theta" + str(theta) + "/"
+        cv2.imwrite(folderPath + imageName + "_scale" + str(scale) + "_All.png", allFoundings)
+        #cv2.imshow("Blurred with Lines", blur)
+
+        #sliceImage(blur)
+        #sliceImage(scaled_filtered_img)
+
+#            plt.axhline(y=threshold_pos)
+#            plt.axhline(y=threshold_neg)
+#            plt.axhline(y=avg)
+#            print("Response map and derivetive of it:")
+        plt.show()
+
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
-"""
+'''

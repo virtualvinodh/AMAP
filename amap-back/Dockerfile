@@ -8,6 +8,7 @@ RUN apt-get -y install python3-dev
 RUN apt-get -y install python3-pip
 RUN apt-get -y install tesseract-ocr libtesseract-dev libleptonica-dev pkg-config
 RUN apt-get -y install libsm6 libxext6 libxrender-dev
+RUN pip3 install -U pip
 RUN pip3 install opencv-contrib-python
 RUN pip3 install flask
 RUN pip3 install flask_cors
