@@ -11,7 +11,7 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
-    "axios": "^0.18.0",
+    "axios": "^0.21.1",
     "fs": "0.0.1-security",
     "jimp": "^0.2.27",
     "jquery": "^3.3.1",
